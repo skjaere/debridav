@@ -2,11 +2,16 @@ package io.william.debrid.resource
 
 import io.milton.http.http11.auth.DigestGenerator
 import io.milton.http.http11.auth.DigestResponse
+import io.milton.resource.CollectionResource
 import io.milton.resource.DigestResource
+import io.milton.resource.MoveableResource
 import io.milton.resource.PropFindableResource
+import io.william.debrid.fs.FileService
 
 
-abstract class AbstractResource: DigestResource, PropFindableResource {
+abstract class AbstractResource(
+    private val fileService: FileService
+): DigestResource, PropFindableResource, MoveableResource {
     override fun authenticate(user: String, requestedPassword: String): Any? {
         if (user == "user" && requestedPassword == "password") {
             return user
@@ -27,6 +32,12 @@ abstract class AbstractResource: DigestResource, PropFindableResource {
             //log.warn("user not found: " + digestRequest.user + " - try 'user'")
         }
         return null
+    }
+
+    override fun moveTo(rDest: CollectionResource, name: String) {
+        fileService.moveResource(this, rDest as DirectoryResource, name)
+        // set parent
+        // update paths
     }
 
 }

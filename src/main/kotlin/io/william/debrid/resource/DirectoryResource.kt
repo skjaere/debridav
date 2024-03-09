@@ -4,25 +4,32 @@ import io.milton.http.Auth
 import io.milton.http.Request
 import io.milton.resource.CollectionResource
 import io.milton.resource.MakeCollectionableResource
+import io.milton.resource.MoveableResource
+import io.milton.resource.PutableResource
 import io.milton.resource.Resource
+import io.william.debrid.fs.FileService
+import io.william.debrid.fs.models.Directory
 import org.springframework.stereotype.Component
+import java.io.InputStream
 import java.time.Instant
 import java.util.*
 
 class DirectoryResource(
-    private val id: Long,
-    private val name: String,
-    private val created: Date,
-    private var children: List<Resource>?
-) :AbstractResource(), MakeCollectionableResource {
+    private val directory: Directory,
+    private var fileService: FileService
+) : AbstractResource(fileService), MakeCollectionableResource, MoveableResource, PutableResource {
 
+    private var children: List<Resource>? = null;
+    init {
+        children = fileService.getChildren(directory)
+    }
 
     override fun getUniqueId(): String {
-        return id.toString()
+        return directory.id.toString()
     }
 
     override fun getName(): String {
-        return name
+        return if(directory.path == "/") "/" else directory.path!!.split("/").last()
     }
 
     override fun authorise(request: Request?, method: Request.Method?, auth: Auth?): Boolean {
@@ -41,26 +48,40 @@ class DirectoryResource(
         return null
     }
 
+    override fun moveTo(rDest: CollectionResource, name: String) {
+        fileService.moveResource(this, rDest as DirectoryResource, name)
+    }
+
     override fun isDigestAllowed(): Boolean {
         return true
     }
 
     override fun getCreateDate(): Date {
-        return created
+        return Date.from(directory.created)
     }
 
     override fun child(childName: String?): Resource? {
-        return children?.first { it.name == childName }
+        return children?.firstOrNull { it.name == childName }
     }
 
     override fun getChildren(): MutableList<out Resource> {
         return children?.toMutableList() ?: emptyList<Resource>().toMutableList()
     }
 
+    override fun createNew(newName: String, inputStream: InputStream, length: Long, contentType: String): Resource {
+        val createdFile = fileService.createLocalFile(
+            "${directory.path}/$newName",
+                length,
+                inputStream,
+                contentType
+                )
+        return FileResource(createdFile, fileService)
+    }
+
 
     override fun createCollection(newName: String?): CollectionResource {
-
-        TODO("not implemented")
-
+        return fileService.createDirectory("${directory.path}/$newName")
     }
+
+    fun getDirectory(): Directory = directory
 }

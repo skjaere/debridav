@@ -1,15 +1,11 @@
-package io.william.debrid.fs
+package io.william.debrid.fs.models
 
-import com.fasterxml.jackson.annotation.JsonIgnore
-import io.milton.resource.Resource
-import io.william.debrid.resource.DirectoryResource
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.ManyToOne
 import java.time.Instant
-import java.util.*
 
 @Entity
 class Directory {
@@ -21,5 +17,7 @@ class Directory {
 
     @ManyToOne
     var parent: Directory? = null
+
+    var created: Instant? = null
 
 }

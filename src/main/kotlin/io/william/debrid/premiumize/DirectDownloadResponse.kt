@@ -17,5 +17,9 @@ data class DirectDownloadResponse(
         val streamLink: String?,
         @JsonAlias("transcode_status")
         val transcodeStatus: String?
-    )
+    ) {
+        fun hasSubDirectories() : Boolean {
+            return path.split("/").size > 1
+        }
+    }
 }

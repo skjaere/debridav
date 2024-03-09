@@ -13,20 +13,8 @@ import javax.sql.DataSource
 
 
 @Configuration
-class Configuration {
-    @Bean
-    fun dataSource(): DataSource {
-        val props = Properties()
+class FilterConfiguration {
 
-        props.setProperty("dataSourceClassName", "org.postgresql.ds.PGSimpleDataSource")
-        props.setProperty("dataSource.user", "william")
-        props.setProperty("dataSource.password", "ferdi")
-        props.setProperty("dataSource.databaseName", "debrid")
-        props["dataSource.logWriter"] = PrintWriter(System.out)
-
-        val config = HikariConfig(props)
-        return HikariDataSource(config)
-    }
 
     @Bean
     fun someFilterRegistration(): FilterRegistrationBean<SpringMiltonFilter> {
@@ -34,7 +22,7 @@ class Configuration {
         registration.setFilter(getMiltonFilter());
         registration.setName("MiltonFilter");
         registration.addUrlPatterns("/*");
-        registration.addInitParameter("milton.exclude.paths", "/files")
+        registration.addInitParameter("milton.exclude.paths", "/files,/api,/version,/sabnzbd")
         registration.addInitParameter("resource.factory.class",
             "io.william.debrid.resource.StreamableResourceFactory");
         registration.addInitParameter("controllerPackagesToScan",
