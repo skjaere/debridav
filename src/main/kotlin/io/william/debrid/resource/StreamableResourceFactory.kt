@@ -6,9 +6,6 @@ import io.milton.http.exceptions.BadRequestException
 import io.milton.http.exceptions.NotAuthorizedException
 import io.milton.resource.Resource
 import io.william.debrid.fs.FileService
-import io.william.debrid.repository.DirectoryRepository
-import io.william.debrid.repository.FileRepository
-import java.net.URLDecoder
 
 
 class StreamableResourceFactory(

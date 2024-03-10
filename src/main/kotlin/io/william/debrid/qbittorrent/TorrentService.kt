@@ -35,6 +35,7 @@ class TorrentService(
     fun createFile(content: DirectDownloadResponse.Content) {
         val createRequest = FileService.CreateFileRequest(
             "/downloads",
+            FileService.CreateFileRequest.Type.DEBRID,
             FileService.CreateFileRequest.File(
                 content.path,
                 content.size,

@@ -1,14 +1,17 @@
 package io.william.debrid.resource
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.milton.common.RangeUtils
 import io.milton.http.Auth
 import io.milton.http.Range
 import io.milton.http.Request
+import io.milton.resource.DeletableResource
 import io.milton.resource.FileResource
 import io.milton.resource.GetableResource
 import io.william.debrid.fs.FileService
 import io.william.debrid.fs.models.DebriDavFile
 import io.william.debrid.fs.models.DebridFile
+import io.william.debrid.fs.models.LocalDebridFile
 import io.william.debrid.fs.models.LocalFile
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -20,16 +23,17 @@ import java.util.*
 import kotlin.time.measureTime
 
 class FileResource(
-    private val file: DebriDavFile,
+    val file: File,
     fileService: FileService
-) : AbstractResource(fileService), GetableResource {
-    private val logger = LoggerFactory.getLogger(FileResource::class.java)
+) : AbstractResource(fileService), GetableResource, DeletableResource {
+
+
     override fun getUniqueId(): String {
-        return file.id.toString()
+        return file.name.toString()
     }
 
     override fun getName(): String {
-        return file.name!!
+        return file.name
     }
 
     override fun authorise(request: Request?, method: Request.Method?, auth: Auth?): Boolean {
@@ -48,24 +52,32 @@ class FileResource(
         return null
     }
 
+    override fun delete() {
+        TODO("Not yet implemented")
+    }
+
+    private fun File.isDebridFile(): Boolean = this.name.endsWith(".debridfile")
+
     override fun sendContent(
         out: OutputStream,
         range: Range?,
         params: MutableMap<String, String>?,
         contentType: String?
     ) {
-        when(file) {
-            is DebridFile -> sendDebridContent(out,range, params, contentType)
+        /*if(file.isDebridFile())
+            sendDebridContent(out,range, params, contentType)
+        else*/
+        sendLocalContent(out,range, params, contentType)
+        /*when(file) {
+            is DebridFile, is LocalDebridFile -> sendDebridContent(out,range, params, contentType)
             is LocalFile -> sendLocalContent(out,range, params, contentType)
-        }
+        }*/
     }
     private fun sendLocalContent(out: OutputStream,
                          range: Range?,
                          params: MutableMap<String, String>?,
                          contentType: String?
     ) {
-        file as LocalFile
-        val file = File("${file.directory!!.path}/${file.name}")
         val stream = file.inputStream()
         if(range != null) {
             RangeUtils.writeRange(stream, range, out)
@@ -73,7 +85,7 @@ class FileResource(
             stream.transferTo(out)
         }
     }
-    private fun sendDebridContent(
+    /*private fun sendDebridContent(
         out: OutputStream,
         range: Range?,
         params: MutableMap<String, String>?,
@@ -86,15 +98,15 @@ class FileResource(
         }
         logger.info("opened connection to ${file.link} in $took ms")
         try {
-            /*val isRead = (out!! as CoyoteOutputStream).isReady()
-            logger.info("isready: $isRead")*/
+            *//*val isRead = (out!! as CoyoteOutputStream).isReady()
+            logger.info("isready: $isRead")*//*
 
             range?.let {
                 if(range.start != null && range.finish == null) {
                     logger.info("Invalid range header received: $range")
-                    /*out.close()
+                    *//*out.close()
                     connection!!.getInputStream().close()
-                    return*/
+                    return*//*
                 }
 
                 val start = range.start ?: 0
@@ -103,15 +115,15 @@ class FileResource(
                 logger.info("applying byterange: $byteRange from $range")
                 connection!!.setRequestProperty("Range", byteRange)
             }
-            /*if(range != null) {
-                *//*if(range.start != null && range.finish == null) {
+            *//*if(range != null) {
+                *//**//*if(range.start != null && range.finish == null) {
                     RangeUtils.writeRange(connection.getInputStream(), Range(0,range.start), out)
-                } else {*//*
+                } else {*//**//*
                     //RangeUtils.writeRange(connection.getInputStream(), range!!, out)
                // }
             } else {
 
-            }*/
+            }*//*
             logger.info("Begin streaming of ${file.link}")
             connection!!.getInputStream().transferTo(out)
             logger.info("Streaming of ${file.link} complete")
@@ -121,29 +133,37 @@ class FileResource(
                 //.openConnection()
                 //.getInputStream()
 
-            /*connection.use
+            *//*connection.use
 
-            connection*/
+            connection*//*
         } catch (e: Exception) {
             out.close()
             connection!!.getInputStream().close()
             logger.error("error!", e)
         }
-    }
+    }*/
 
     override fun getMaxAgeSeconds(auth: Auth?): Long {
         return 100
     }
 
     override fun getContentType(accepts: String?): String? {
+        return if(file.isDebridFile())
+            "video/mp4"
+        else {
+            file.toURI().toURL().openConnection().contentType
+
+        }
+/*
         return when(file) {
-            is DebridFile -> "video/mp4"
+            is DebridFile, is LocalDebridFile -> "video/mp4"
             is LocalFile -> file.contentType
         }
+*/
     }
 
     override fun getContentLength(): Long {
-        return file.size!!
+        return file.length()
     }
 
     override fun isDigestAllowed(): Boolean {
@@ -154,5 +174,5 @@ class FileResource(
         return Date.from(Instant.now())
     }
 
-    fun getDebriDavFile(): DebriDavFile = file
+    //fun getDebriDavFile(): DebriDavFile = file
 }

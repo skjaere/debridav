@@ -1,8 +1,12 @@
-TODO:
-~~- Use H2~~
-- Fix Sonarr integration
-**- Implement local files**
-- Fix path queries
-- Create volume with rclone
-- Write docker compose
-- 
+# TODO:
+
+
+- [ ] Fix Sonarr integration
+- - [ ] Delete file support
+- - [x] Implement local files
+- - [ ] Create volume with rclone
+- [x] Fix path queries
+- [ ] Write docker compose
+- [ ] Tests
+- [x] Use H2
+- [x] Dont use DB

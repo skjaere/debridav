@@ -5,9 +5,10 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.ManyToOne
+import org.apache.logging.log4j.util.StringMap
 
 
-@Entity
+/*@Entity
 open class DebridFile: DebriDavFile {
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO )
@@ -21,4 +22,13 @@ open class DebridFile: DebriDavFile {
     open var streamingLink: String? = null
 
     enum class Type { DEBRID, LOCAL}
-}
+}*/
+
+
+data class DebridFile(
+    val name: String,
+    val path: String,
+    val size: Long,
+    val modified: Long,
+    val link: String
+)

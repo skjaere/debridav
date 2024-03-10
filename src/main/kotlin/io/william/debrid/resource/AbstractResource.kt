@@ -35,7 +35,7 @@ abstract class AbstractResource(
     }
 
     override fun moveTo(rDest: CollectionResource, name: String) {
-        fileService.moveResource(this, rDest as DirectoryResource, name)
+        fileService.moveResource(this, (rDest as DirectoryResource).directory.path, name)
         // set parent
         // update paths
     }

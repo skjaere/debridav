@@ -7,7 +7,7 @@ import io.milton.http.webdav.DefaultWebDavResponseHandler
 import io.milton.http.webdav.WebDavResponseHandler
 import io.william.debrid.fs.FileService
 import io.william.debrid.repository.DirectoryRepository
-import io.william.debrid.repository.FileRepository
+//import io.william.debrid.repository.FileRepository
 import io.william.debrid.resource.StreamableResourceFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

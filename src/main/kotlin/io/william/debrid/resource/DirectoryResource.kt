@@ -10,22 +10,26 @@ import io.milton.resource.Resource
 import io.william.debrid.fs.FileService
 import io.william.debrid.fs.models.Directory
 import org.springframework.stereotype.Component
+import java.io.File
 import java.io.InputStream
 import java.time.Instant
 import java.util.*
 
 class DirectoryResource(
-    private val directory: Directory,
+    val directory: File,
     private var fileService: FileService
 ) : AbstractResource(fileService), MakeCollectionableResource, MoveableResource, PutableResource {
 
     private var children: List<Resource>? = null;
     init {
-        children = fileService.getChildren(directory)
+        children = directory.listFiles()
+            ?.toList()
+            ?.mapNotNull { fileService.toResource(it) }
+            ?: emptyList()
     }
 
     override fun getUniqueId(): String {
-        return directory.id.toString()
+        return directory.path
     }
 
     override fun getName(): String {
@@ -49,7 +53,7 @@ class DirectoryResource(
     }
 
     override fun moveTo(rDest: CollectionResource, name: String) {
-        fileService.moveResource(this, rDest as DirectoryResource, name)
+        fileService.moveResource(this, (rDest as DirectoryResource).directory.path, name)
     }
 
     override fun isDigestAllowed(): Boolean {
@@ -57,7 +61,7 @@ class DirectoryResource(
     }
 
     override fun getCreateDate(): Date {
-        return Date.from(directory.created)
+        return Date.from(Instant.ofEpochMilli(directory.lastModified()))
     }
 
     override fun child(childName: String?): Resource? {
@@ -83,5 +87,5 @@ class DirectoryResource(
         return fileService.createDirectory("${directory.path}/$newName")
     }
 
-    fun getDirectory(): Directory = directory
+    //fun getDirectory(): Directory = directory
 }
