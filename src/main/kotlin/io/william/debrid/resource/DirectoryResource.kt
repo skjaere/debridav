@@ -8,8 +8,6 @@ import io.milton.resource.MoveableResource
 import io.milton.resource.PutableResource
 import io.milton.resource.Resource
 import io.william.debrid.fs.FileService
-import io.william.debrid.fs.models.Directory
-import org.springframework.stereotype.Component
 import java.io.File
 import java.io.InputStream
 import java.time.Instant
@@ -86,6 +84,4 @@ class DirectoryResource(
     override fun createCollection(newName: String?): CollectionResource {
         return fileService.createDirectory("${directory.path}/$newName")
     }
-
-    //fun getDirectory(): Directory = directory
 }

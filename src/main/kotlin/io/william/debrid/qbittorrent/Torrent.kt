@@ -13,31 +13,22 @@ open class Torrent {
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO )
     open var id: Long? = null
-
     open var name: String? = null
-
     @ManyToOne
     open var category: Category? = null
-
     @OneToMany
     open var files: List<TorrentFile>? = null
-
     open var created: Instant? = null
-
     open var hash: String? = null
-
     open var savePath: String? = null
 }
 
 @Entity
-class TorrentFile {
+open class TorrentFile {
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO )
-    var id: Long? = null
-
-    var fileName: String? = null
-
-    var size: Long? = null
-
-    var path: String? = null
+    open var id: Long? = null
+    open var fileName: String? = null
+    open var size: Long? = null
+    open var path: String? = null
 }

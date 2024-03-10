@@ -22,11 +22,11 @@ class DebridFileResource(
 ) : AbstractResource(fileService), GetableResource, DeletableResource {
     private val logger = LoggerFactory.getLogger(DebridFileResource::class.java)
     override fun getUniqueId(): String {
-        return debridFile.name!!
+        return debridFile.name
     }
 
     override fun getName(): String {
-        return debridFile.name!!
+        return debridFile.name
     }
 
     override fun authorise(request: Request?, method: Request.Method?, auth: Auth?): Boolean {
@@ -61,15 +61,9 @@ class DebridFileResource(
         }
         logger.info("opened connection to ${debridFile.link} in $took ms")
         try {
-            /*val isRead = (out!! as CoyoteOutputStream).isReady()
-            logger.info("isready: $isRead")*/
-
             range?.let {
                 if(range.start != null && range.finish == null) {
                     logger.info("Invalid range header received: $range")
-                    /*out.close()
-                    connection!!.getInputStream().close()
-                    return*/
                 }
 
                 val start = range.start ?: 0
@@ -78,27 +72,11 @@ class DebridFileResource(
                 logger.info("applying byterange: $byteRange from $range")
                 connection!!.setRequestProperty("Range", byteRange)
             }
-            /*if(range != null) {
-                *//*if(range.start != null && range.finish == null) {
-                    RangeUtils.writeRange(connection.getInputStream(), Range(0,range.start), out)
-                } else {*//*
-                    //RangeUtils.writeRange(connection.getInputStream(), range!!, out)
-               // }
-            } else {
-
-            }*/
             logger.info("Begin streaming of ${debridFile.link}")
             connection!!.getInputStream().transferTo(out)
             logger.info("Streaming of ${debridFile.link} complete")
             connection!!.getInputStream().close()
             out.close()
-
-            //.openConnection()
-            //.getInputStream()
-
-            /*connection.use
-
-            connection*/
         } catch (e: Exception) {
             out.close()
             connection!!.getInputStream().close()

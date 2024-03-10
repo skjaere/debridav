@@ -1,8 +1,5 @@
 package io.william.debrid.fs
 
-import io.william.debrid.fs.models.DebridFile
-import io.william.debrid.fs.models.Directory
-import io.william.debrid.fs.models.LocalFile
 import jakarta.annotation.PostConstruct
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -56,12 +53,10 @@ class LocalStorageService(
         )
     }
 
-    fun getFilesAtPath(path: String): List<File> {
-        return File("$localPath/$path").listFiles()?.toList() ?: emptyList()
-    }
-
     fun getFileAtPath(path: String): File? {
-        return File("$localPath/$path")
+        val file = File("$localPath/$path")
+        if(file.exists()) return file
+        return null
     }
 
     fun createDirectoryIfNotExist(path: String): File {

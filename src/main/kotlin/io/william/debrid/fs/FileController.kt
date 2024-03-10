@@ -13,13 +13,6 @@ import java.net.URL
 class FileController(
     private val fileService: FileService
 ) {
-
-    @PostMapping("/directory/create", produces = ["application/json"])
-    fun createDirectory(@RequestBody body: JsonNode): String {
-        fileService.getOrCreateDirectory(body.get("path").asText())
-        return "ok"
-    }
-
     @PostMapping("/file/create", produces = ["application/json"])
     fun createFile(@RequestBody body: JsonNode): String {
         val mapper = jacksonObjectMapper()
@@ -42,35 +35,5 @@ class FileController(
         inputStream.transferTo(response.outputStream)
         inputStream.close()
         response.outputStream.close()
-        /*try {
-            *//*val isRead = (out!! as CoyoteOutputStream).isReady()
-            logger.info("isready: $isRead")*//*
-
-            range?.let {
-                val start = range.start ?: 0
-                val finish = range.finish ?: debridFile.size!!
-                val byteRange = "bytes=$start-$finish"
-                connection.setRequestProperty("Range", byteRange)
-            }
-            *//*if(range != null) {
-                *//**//*if(range.start != null && range.finish == null) {
-                    RangeUtils.writeRange(connection.getInputStream(), Range(0,range.start), out)
-                } else {*//**//*
-                    //RangeUtils.writeRange(connection.getInputStream(), range!!, out)
-               // }
-            } else {
-
-            }*//*
-            connection.getInputStream().transferTo(out)
-            //.openConnection()
-            //.getInputStream()
-
-            *//*connection.use
-
-            connection*//*
-        } catch (e: Exception) {
-            out!!.close()
-            logger.error("error!", e)
-        }*/
     }
 }
