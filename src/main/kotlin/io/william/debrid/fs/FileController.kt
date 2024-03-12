@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
 import java.net.URL
 
@@ -17,7 +16,7 @@ class FileController(
     fun createFile(@RequestBody body: JsonNode): String {
         val mapper = jacksonObjectMapper()
         val req = mapper.convertValue(body, FileService.CreateFileRequest::class.java)
-        fileService.createFile(req)
+        fileService.createDebridFile(req)
         return "ok"
     }
     @RequestMapping(

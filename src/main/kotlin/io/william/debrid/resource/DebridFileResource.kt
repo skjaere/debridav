@@ -4,11 +4,11 @@ import io.milton.http.Auth
 import io.milton.http.Range
 import io.milton.http.Request
 import io.milton.resource.DeletableResource
-import io.milton.resource.FileResource
 import io.milton.resource.GetableResource
 import io.william.debrid.fs.FileService
 import io.william.debrid.fs.models.DebridFile
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.io.OutputStream
 import java.net.URL
 import java.net.URLConnection
@@ -18,6 +18,7 @@ import kotlin.time.measureTime
 
 class DebridFileResource(
     val debridFile: DebridFile,
+    val file: File,
     fileService: FileService
 ) : AbstractResource(fileService), GetableResource, DeletableResource {
     private val logger = LoggerFactory.getLogger(DebridFileResource::class.java)
@@ -46,7 +47,7 @@ class DebridFileResource(
     }
 
     override fun delete() {
-        TODO("Not yet implemented")
+        file.delete()
     }
 
     override fun sendContent(

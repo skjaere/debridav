@@ -16,19 +16,10 @@ open class Torrent {
     open var name: String? = null
     @ManyToOne
     open var category: Category? = null
-    @OneToMany
+    @OneToMany(targetEntity = TorrentFile::class)
     open var files: List<TorrentFile>? = null
     open var created: Instant? = null
     open var hash: String? = null
     open var savePath: String? = null
 }
 
-@Entity
-open class TorrentFile {
-    @Id
-    @GeneratedValue(strategy= GenerationType.AUTO )
-    open var id: Long? = null
-    open var fileName: String? = null
-    open var size: Long? = null
-    open var path: String? = null
-}

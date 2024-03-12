@@ -2,11 +2,15 @@
 
 
 - [ ] Fix Sonarr integration
-- - [ ] Delete file support
+- - [x] Delete file support
 - - [x] Implement local files
-- - [ ] Create volume with rclone
+- - [x] Create volume with rclone
+- - [x] Write docker compose
 - [x] Fix path queries
-- [ ] Write docker compose
+
 - [ ] Tests
 - [x] Use H2
-- [x] Dont use DB
+- [x] Dont use DB for files
+- [ ] Download small files
+- [ ] Implement torrent upload
+- [ ] Implement delete torrent endpoint

@@ -43,7 +43,7 @@ class FileResource(
     }
 
     override fun delete() {
-        TODO("Not yet implemented")
+        file.delete()
     }
 
     private fun File.isDebridFile(): Boolean = this.name.endsWith(".debridfile")

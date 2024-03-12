@@ -8,10 +8,11 @@ import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import javax.naming.ConfigurationException
+import kotlin.io.path.exists
 
 @Service
 class LocalStorageService(
-    @Value("\${debridav.local.file.path}") val localPath: String
+    @Value("\${debridav.local.download.path}") val localPath: String
 ) {
     @PostConstruct
     fun postConstruct() {
@@ -20,29 +21,38 @@ class LocalStorageService(
         }
     }
 
-    fun createFile(
+    fun createDebridFile(
         directory: String,
-        fileName: String,
-        type: FileService.CreateFileRequest.Type,
-        inputStream: InputStream): File {
-        val file = when(type) {
-            FileService.CreateFileRequest.Type.NORMAL -> File("$localPath${directory}/$fileName")
-            FileService.CreateFileRequest.Type.DEBRID -> File("$localPath${directory}/$fileName.debridfile")
-        }
-        if(file.exists()) {
-            throw FileExistsException("${directory}/$fileName already exists")
-        }
+        inputStream: InputStream
+    ): File {
+        val file = File("$localPath/$directory.debridfile")
+        return writeFile(file, inputStream)
+    }
 
-        if(!file.parentFile.exists()) {
-            file.parentFile.mkdirs()
+    fun createLocalFile(
+        directory: String,
+        type: FileService.CreateFileRequest.Type,
+        inputStream: InputStream
+    ): File {
+        val file = File(directory)
+        return writeFile(file, inputStream)
+    }
+
+    private fun writeFile(file: File, inputStream: InputStream): File {
+        if(file.exists()) {
+            throw FileExistsException("${file.path} already exists")
         }
+        if(!Files.exists(file.toPath().parent)) {
+            Files.createDirectory(file.toPath().parent)
+        }
+        file.createNewFile()
         inputStream.transferTo(file.outputStream())
         return file
     }
 
     fun moveFile(file: String, destinationDirectory: String, name: String) {
         val src = File(file)
-        val destination = File("$localPath${destinationDirectory}/$name")
+        val destination = File("$destinationDirectory/$name")
         if(!destination.parentFile.exists()) {
             destination.parentFile.mkdirs()
         }
@@ -61,8 +71,9 @@ class LocalStorageService(
 
     fun createDirectoryIfNotExist(path: String): File {
         val file = File(path)
-        if(file.exists()) {
-            file.mkdirs()
+
+        if(!Files.exists(file.toPath())) {
+            Files.createDirectory(file.toPath())
         }
 
         return file

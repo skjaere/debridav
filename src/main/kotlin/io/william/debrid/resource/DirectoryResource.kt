@@ -3,6 +3,7 @@ package io.william.debrid.resource
 import io.milton.http.Auth
 import io.milton.http.Request
 import io.milton.resource.CollectionResource
+import io.milton.resource.DeletableResource
 import io.milton.resource.MakeCollectionableResource
 import io.milton.resource.MoveableResource
 import io.milton.resource.PutableResource
@@ -16,7 +17,7 @@ import java.util.*
 class DirectoryResource(
     val directory: File,
     private var fileService: FileService
-) : AbstractResource(fileService), MakeCollectionableResource, MoveableResource, PutableResource {
+) : AbstractResource(fileService), MakeCollectionableResource, MoveableResource, PutableResource, DeletableResource {
 
     private var children: List<Resource>? = null;
     init {
@@ -50,6 +51,10 @@ class DirectoryResource(
         return null
     }
 
+    override fun delete() {
+        directory.delete()
+    }
+
     override fun moveTo(rDest: CollectionResource, name: String) {
         fileService.moveResource(this, (rDest as DirectoryResource).directory.path, name)
     }
@@ -70,7 +75,7 @@ class DirectoryResource(
         return children?.toMutableList() ?: emptyList<Resource>().toMutableList()
     }
 
-    override fun createNew(newName: String, inputStream: InputStream, length: Long, contentType: String): Resource {
+    override fun createNew(newName: String, inputStream: InputStream, length: Long, contentType: String?): Resource {
         val createdFile = fileService.createLocalFile(
             "${directory.path}/$newName",
                 length,
@@ -82,6 +87,6 @@ class DirectoryResource(
 
 
     override fun createCollection(newName: String?): CollectionResource {
-        return fileService.createDirectory("${directory.path}/$newName")
+        return fileService.createDirectory("${directory.path}/$newName/")
     }
 }

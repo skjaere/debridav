@@ -16,8 +16,8 @@ class FileService(
     private val localFileService: LocalStorageService,
     private val objectMapper: ObjectMapper
 ) {
-    fun createFile(createRequest: CreateFileRequest) {
-        val debridFileToCreate = DebridFile(
+    fun createDebridFile(createRequest: CreateFileRequest) {
+        val debridFileContents = DebridFile(
             getNameFromPath(createRequest.file.path),
             createRequest.file.path,
             createRequest.file.size,
@@ -25,18 +25,15 @@ class FileService(
             createRequest.file.link
         )
 
-        localFileService.createFile(
-            getNameFromPath(createRequest.path),
+        localFileService.createDebridFile(
             createRequest.file.path,
-            createRequest.type,
-            objectMapper.writeValueAsString(debridFileToCreate).byteInputStream()
+            objectMapper.writeValueAsString(debridFileContents).byteInputStream()
         )
     }
 
-    fun createLocalFile(path: String, size: Long, inputStream: InputStream, contentType: String): File {
-        return localFileService.createFile(
+    fun createLocalFile(path: String, size: Long, inputStream: InputStream, contentType: String?): File {
+        return localFileService.createLocalFile(
             path,
-            getNameFromPath(path),
             CreateFileRequest.Type.NORMAL,
             inputStream
         )
@@ -67,7 +64,7 @@ class FileService(
             throw RuntimeException("Provided file is a directory")
         }
         return if(this.name.endsWith(".debridfile")) {
-            DebridFileResource(objectMapper.readValue(this, DebridFile::class.java), this@FileService)
+            DebridFileResource(objectMapper.readValue(this, DebridFile::class.java), this,this@FileService)
         } else {
             if(this.exists())
                 return FileResource(this, this@FileService)
@@ -89,16 +86,10 @@ class FileService(
     fun moveResource(item: Resource, destination: String, name: String) {
         when(item) {
             is FileResource -> moveFile(item.file.path, destination, name)
-            is DebridFileResource -> moveFile(item.debridFile.path, destination, name)
+            is DebridFileResource -> moveFile(item.file.path, destination, "$name.debridfile")
             is DirectoryResource -> moveFile(item.directory.path, destination, name)
         }
     }
-
-    private fun List<String>.getPaths(): List<String> = listOf("/").plus(
-        this.runningReduce { acc, s ->
-                "$acc/${s.replace(" ","_")}"
-            }.map { "/$it" }
-    )
 
     data class CreateFileRequest( // TODO: wth was I thinking?
         val path: String,

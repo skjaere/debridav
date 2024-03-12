@@ -1,6 +1,7 @@
 package io.william.debrid.qbittorrent
 
 import com.fasterxml.jackson.annotation.JsonAlias
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -9,7 +10,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 class QBittorrentEmulationController(
     private val torrentService: TorrentService,
-    private val resourceLoader: ResourceLoader
+    private val resourceLoader: ResourceLoader,
+    @Value("debridav.qbittorent.downloaddir") private val downloadDir: String
 ) {
     @GetMapping("/api/v2/app/webapiVersion")
     fun version(): String {
@@ -31,6 +33,7 @@ class QBittorrentEmulationController(
         return resourceLoader
             .getResource("classpath:qbittorrent_properties_response.json")
             .getContentAsString(Charsets.UTF_8)
+            .replace("%DOWNLOAD_DIR%", downloadDir)
     }
 
 

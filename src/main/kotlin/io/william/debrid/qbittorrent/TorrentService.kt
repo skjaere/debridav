@@ -43,7 +43,7 @@ class TorrentService(
                 content.streamLink
             )
         )
-        fileService.createFile(createRequest)
+        fileService.createDebridFile(createRequest)
     }
 
     fun createTorrent(content: DirectDownloadResponse, categoryName: String) {
@@ -55,10 +55,10 @@ class TorrentService(
                 newCategory.downloadPath = "/downloads"
                 categoryRepository.save(newCategory)
             }
-        torrent.name = content.filename
+        torrent.name = content.filename.split("/").first()
         torrent.created = Instant.now()
         torrent.hash = generateHash(torrent)
-        torrent.savePath = torrent.category!!.downloadPath
+        torrent.savePath = "${torrent.category!!.downloadPath}/"
         torrent.files = content.content.map {
             val torrentFile = TorrentFile()
             torrentFile.fileName = it.path
