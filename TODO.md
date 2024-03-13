@@ -1,7 +1,7 @@
 # TODO:
 
 
-- [ ] Fix Sonarr integration
+- [x] Fix Sonarr integration
 - - [x] Delete file support
 - - [x] Implement local files
 - - [x] Create volume with rclone
@@ -11,8 +11,8 @@
 - [ ] Tests
 - [x] Use H2
 - [x] Dont use DB for files
-- [ ] Download small files
+- [x] Download small files
 - [ ] Implement torrent upload
 - [x] Implement delete torrent endpoint
 - [ ] Implement SabNzbd controller
-- 
+- [x] Refresh dead links

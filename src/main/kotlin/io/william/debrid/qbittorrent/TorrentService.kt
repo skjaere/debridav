@@ -19,21 +19,24 @@ class TorrentService(
     private val torrentRepository: TorrentRepository,
     private val torrentFileRepository: TorrentFileRepository,
     private val categoryRepository: CategoryRepository,
-    @Value("\${debridav.local.download.path}") private val downloadPath: String,
-    @Value("\${debridav.local.file.path}") private val localFilePath: String
+    @Value("\${debriDav.local.download.path}") private val downloadPath: String,
+    @Value("\${debriDav.local.file.path}") private val localFilePath: String
 ) {
     fun addTorrent(category: String, magnet: String) {
         if (premiumizeClient.isCached(magnet)) {
             premiumizeClient.getDirectDownloadLink(magnet)?.let { cachedTorrent ->
                 createTorrent(cachedTorrent, category)
                 cachedTorrent.content.forEach {
-                    createFile(it)
+                    createFile(it, magnet)
                 }
             }
         }
     }
 
-    fun createFile(content: DirectDownloadResponse.Content) {
+    fun createFile(
+        content: DirectDownloadResponse.Content,
+        magnet: String
+    ) {
         val createRequest = FileService.CreateFileRequest(
             null,
             FileService.CreateFileRequest.Type.DEBRID,
@@ -44,7 +47,7 @@ class TorrentService(
                 content.streamLink
             )
         )
-        fileService.createDebridFile(createRequest)
+        fileService.createDebridFile(createRequest, magnet, null)
     }
 
     fun createTorrent(content: DirectDownloadResponse, categoryName: String) {
@@ -98,6 +101,8 @@ class TorrentService(
             true
         } ?: false
     }
+
+
 
     fun generateHash(torrent: Torrent): String {
         val digest: MessageDigest = MessageDigest.getInstance("SHA-1")

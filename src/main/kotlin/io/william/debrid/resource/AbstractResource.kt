@@ -10,7 +10,7 @@ import io.william.debrid.fs.FileService
 
 
 abstract class AbstractResource(
-    private val fileService: FileService
+    val fileService: FileService
 ): DigestResource, PropFindableResource, MoveableResource {
     override fun authenticate(user: String, requestedPassword: String): Any? {
         if (user == "user" && requestedPassword == "password") {

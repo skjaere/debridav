@@ -1,6 +1,7 @@
 package io.william.debrid.premiumize
 
 import com.fasterxml.jackson.databind.JsonNode
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
@@ -8,9 +9,11 @@ import org.springframework.web.multipart.MultipartFile
 import java.net.URLEncoder
 
 @Component
-class PremiumizeClient {
-    private val apiKey = "re8stt9uhcmnxxbf"
-    private val baseUrl = "https://www.premiumize.me/api/"
+class PremiumizeClient(
+    @Value("\${premiumize.apikey}") private val apiKey: String, // = "re8stt9uhcmnxxbf",
+    @Value("\${premiumize.baseurl}") private val baseUrl: String // = "https://www.premiumize.me/api/"
+) {
+
     private val restClient = RestClient.create()
 
     fun isCached(item: String): Boolean {

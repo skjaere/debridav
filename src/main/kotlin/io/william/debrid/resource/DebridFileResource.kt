@@ -6,28 +6,23 @@ import io.milton.http.Request
 import io.milton.resource.DeletableResource
 import io.milton.resource.GetableResource
 import io.william.debrid.fs.FileService
-import io.william.debrid.fs.models.DebridFile
-import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.OutputStream
-import java.net.URL
-import java.net.URLConnection
 import java.time.Instant
 import java.util.*
-import kotlin.time.measureTime
 
 class DebridFileResource(
-    val debridFile: DebridFile,
+    //val debridFile: DebridFile,
     val file: File,
     fileService: FileService
 ) : AbstractResource(fileService), GetableResource, DeletableResource {
-    private val logger = LoggerFactory.getLogger(DebridFileResource::class.java)
+
     override fun getUniqueId(): String {
-        return debridFile.name
+        return file.name
     }
 
     override fun getName(): String {
-        return debridFile.name
+        return file.name
     }
 
     override fun authorise(request: Request?, method: Request.Method?, auth: Auth?): Boolean {
@@ -39,7 +34,7 @@ class DebridFileResource(
     }
 
     override fun getModifiedDate(): Date {
-        return Date.from(Instant.ofEpochMilli(debridFile.modified))
+        return Date.from(Instant.ofEpochMilli(file.lastModified()))
     }
 
     override fun checkRedirect(request: Request?): String? {
@@ -56,33 +51,7 @@ class DebridFileResource(
         params: MutableMap<String, String>?,
         contentType: String?
     ) {
-        var connection: URLConnection?
-        val took = measureTime {
-            connection = URL(debridFile.link).openConnection()
-        }
-        logger.info("opened connection to ${debridFile.link} in $took ms")
-        try {
-            range?.let {
-                if(range.start != null && range.finish == null) {
-                    logger.info("Invalid range header received: $range")
-                }
-
-                val start = range.start ?: 0
-                val finish = range.finish ?: debridFile.size
-                val byteRange = "bytes=$start-$finish"
-                logger.info("applying byterange: $byteRange from $range")
-                connection!!.setRequestProperty("Range", byteRange)
-            }
-            logger.info("Begin streaming of ${debridFile.link}")
-            connection!!.getInputStream().transferTo(out)
-            logger.info("Streaming of ${debridFile.link} complete")
-            connection!!.getInputStream().close()
-            out.close()
-        } catch (e: Exception) {
-            out.close()
-            connection!!.getInputStream().close()
-            logger.error("error!", e)
-        }
+        fileService.streamDebridFile(file, range, out)
     }
 
     override fun getMaxAgeSeconds(auth: Auth?): Long {
@@ -94,7 +63,7 @@ class DebridFileResource(
     }
 
     override fun getContentLength(): Long {
-        return debridFile.size
+        return fileService.getSizeOfCachedContent(file)
     }
 
     override fun isDigestAllowed(): Boolean {

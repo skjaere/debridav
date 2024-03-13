@@ -16,7 +16,7 @@ import java.util.*
 
 class DirectoryResource(
     val directory: File,
-    private var fileService: FileService
+    fileService: FileService
 ) : AbstractResource(fileService), MakeCollectionableResource, MoveableResource, PutableResource, DeletableResource {
 
     private var children: List<Resource>? = null;

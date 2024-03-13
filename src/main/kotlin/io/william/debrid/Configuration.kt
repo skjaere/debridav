@@ -1,5 +1,7 @@
 package io.william.debrid
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.milton.servlet.MiltonFilter
@@ -7,6 +9,7 @@ import io.milton.servlet.SpringMiltonFilter
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Primary
 import java.io.PrintWriter
 import java.util.*
 import javax.sql.DataSource
@@ -32,6 +35,10 @@ class FilterConfiguration {
         //registration.order = 1
         return registration;
     }
+
+    @Bean
+    @Primary
+    fun objectMapper(): ObjectMapper = jacksonObjectMapper()
 
     private fun getMiltonFilter() : SpringMiltonFilter {
         return  SpringMiltonFilter()
