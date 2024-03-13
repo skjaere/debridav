@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
@@ -19,7 +19,6 @@
         <dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
         <docker.image.prefix>korvusz.io</docker.image.prefix>
     </properties>
-
 
 
     <dependencies>
@@ -71,6 +70,10 @@
             <artifactId>mockserver-netty-no-dependencies</artifactId>
             <version>RELEASE</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -113,33 +116,6 @@
                         <phase>install</phase>
                         <goals>
                             <goal>build</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.mock-server</groupId>
-                <artifactId>mockserver-maven-plugin</artifactId>
-                <version>3.10.8</version>
-                <configuration>
-                    <serverPort>8099</serverPort>
-                    <proxyPort>1090</proxyPort>
-                    <logLevel>DEBUG</logLevel>
-                    <initializationClass>org.mockserver.maven.ExampleInitializationClass</initializationClass>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>process-test-classes</id>
-                        <phase>process-test-classes</phase>
-                        <goals>
-                            <goal>start</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>verify</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>stop</goal>
                         </goals>
                     </execution>
                 </executions>

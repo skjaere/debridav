@@ -1,6 +1,5 @@
 package io.william.debrid.fs
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.milton.http.Range
@@ -47,7 +46,7 @@ class FileService(
         torrentFile: ByteArray?
     ) {
         val debridFileContents = DebridFileContents(
-            createRequest.path!!,
+            createRequest.file.path!!,
             createRequest.file.size,
             Instant.now().toEpochMilli(),
             createRequest.file.link,
