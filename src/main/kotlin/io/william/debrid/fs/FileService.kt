@@ -1,16 +1,19 @@
 package io.william.debrid.fs
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import io.milton.resource.Resource
 import io.william.debrid.fs.models.DebridFile
 import io.william.debrid.resource.DebridFileResource
 import io.william.debrid.resource.DirectoryResource
 import io.william.debrid.resource.FileResource
 import jakarta.annotation.PostConstruct
+import org.apache.commons.io.FileExistsException
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.File
 import java.io.InputStream
+import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Instant
@@ -18,9 +21,9 @@ import javax.naming.ConfigurationException
 
 @Service
 class FileService(
-    private val localFileService: LocalStorageService,
     private val objectMapper: ObjectMapper,
-    @Value("\${debridav.local.download.path}") val localPath: String
+    @Value("\${debridav.local.file.path}") val localPath: String,
+    @Value("\${debridav.cache.local.debridfiles.threshold.mb}") val cacheLocalFilesMbThreshold: Int
 ) {
 
     @PostConstruct
@@ -38,18 +41,24 @@ class FileService(
             Instant.now().toEpochMilli(),
             createRequest.file.link
         )
-
-        createDebridFile(
-            createRequest.file.path,
-            objectMapper.writeValueAsString(debridFileContents).byteInputStream()
-        )
+        if(createRequest.file.size < cacheLocalFilesMbThreshold * 1024 * 1024) {
+            createLocalFile(
+                createRequest.file.path,
+                URL(createRequest.file.link).openConnection().getInputStream()
+            )
+        } else {
+            createDebridFile(
+                createRequest.file.path,
+                objectMapper.writeValueAsString(debridFileContents).byteInputStream()
+            )
+        }
     }
 
     fun createDebridFile(
         directory: String,
         inputStream: InputStream
     ): File {
-        return createLocalFile("$localPath/$directory.debridfile", inputStream)
+        return createLocalFile("$directory.debridfile", inputStream)
     }
 
     fun createLocalFile(
@@ -65,25 +74,22 @@ class FileService(
             throw FileExistsException("${file.path} already exists")
         }
         if(!Files.exists(file.toPath().parent)) {
-            Files.createDirectory(file.toPath().parent)
+            Files.createDirectories(file.toPath().parent)
         }
         file.createNewFile()
         inputStream.transferTo(file.outputStream())
         return file
     }
 
-    /*fun createLocalFile(path: String, size: Long, inputStream: InputStream, contentType: String?): File {
-        return createLocalFile(
-            path,
-            CreateFileRequest.Type.NORMAL,
-            inputStream
-        )
-    }*/
-
     private fun getNameFromPath(path: String): String = path.split("/").last()
 
     fun moveFile(path: String, destinationDirectory: String, name: String) {
         val src = File(path)
+        val contents = objectMapper.readValue<DebridFile>(src.readText())
+        contents.name = name.replace(".debridfile","")
+        contents.path = "$destinationDirectory/${contents.name}"
+        src.writeText(objectMapper.writeValueAsString(contents))
+
         val destination = File("$destinationDirectory/$name")
         if(!destination.parentFile.exists()) {
             destination.parentFile.mkdirs()
@@ -117,7 +123,7 @@ class FileService(
     }
 
     fun getFileAtPath(path: String): File? {
-        val file = File("$localPath/$path")
+        val file = File("$localPath$path")
         if(file.exists()) return file
         return null
     }

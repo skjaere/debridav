@@ -6,6 +6,7 @@ import io.william.debrid.premiumize.PremiumizeClient
 import io.william.debrid.repository.CategoryRepository
 import io.william.debrid.repository.TorrentFileRepository
 import io.william.debrid.repository.TorrentRepository
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.security.MessageDigest
 import java.time.Instant
@@ -17,7 +18,9 @@ class TorrentService(
     private val fileService: FileService,
     private val torrentRepository: TorrentRepository,
     private val torrentFileRepository: TorrentFileRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    @Value("\${debridav.local.download.path}") private val downloadPath: String,
+    @Value("\${debridav.local.file.path}") private val localFilePath: String
 ) {
     fun addTorrent(category: String, magnet: String) {
         if (premiumizeClient.isCached(magnet)) {
@@ -35,7 +38,7 @@ class TorrentService(
             null,
             FileService.CreateFileRequest.Type.DEBRID,
             FileService.CreateFileRequest.File(
-                content.path,
+                "$localFilePath/$downloadPath/${content.path}",
                 content.size,
                 content.link,
                 content.streamLink
@@ -90,11 +93,10 @@ class TorrentService(
     }
 
     fun deleteTorrentByHash(hash: String): Boolean {
-        return torrentRepository.getByHash(hash)?.let {
+        return torrentRepository.getByHash(hash.uppercase())?.let {
             torrentRepository.delete(it)
             true
         } ?: false
-
     }
 
     fun generateHash(torrent: Torrent): String {
