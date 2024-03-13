@@ -12,7 +12,6 @@ import java.time.Instant
 import java.util.*
 
 class DebridFileResource(
-    //val debridFile: DebridFile,
     val file: File,
     fileService: FileService
 ) : AbstractResource(fileService), GetableResource, DeletableResource {
@@ -22,7 +21,7 @@ class DebridFileResource(
     }
 
     override fun getName(): String {
-        return file.name
+        return file.name.replace(".debridfile", "")
     }
 
     override fun authorise(request: Request?, method: Request.Method?, auth: Auth?): Boolean {

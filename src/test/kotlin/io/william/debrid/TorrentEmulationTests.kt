@@ -75,5 +75,4 @@ class TorrentEmulationTests {
         //then
         assertTrue(File("/tmp/debridavtests/downloads/a/b/c.debridfile").exists())
     }
-
 }

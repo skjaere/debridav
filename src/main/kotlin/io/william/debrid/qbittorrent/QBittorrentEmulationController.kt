@@ -1,10 +1,8 @@
 package io.william.debrid.qbittorrent
 
 import com.fasterxml.jackson.annotation.JsonAlias
-import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
-import org.springframework.http.HttpRequest
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -25,7 +23,11 @@ class QBittorrentEmulationController(
         return torrentService.getCategories().associateBy { it.name!! }
     }
 
-    @RequestMapping(path=  ["api/v2/torrents/createCategory"], method = [RequestMethod.POST], consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE])
+    @RequestMapping(
+        path = ["api/v2/torrents/createCategory"],
+        method = [RequestMethod.POST],
+        consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE]
+    )
     fun createCategory(@RequestParam category: String): Category {
         return torrentService.createCategory(category)
     }
@@ -58,7 +60,7 @@ class QBittorrentEmulationController(
         return torrentService
             .getTorrentsByCategory(category!!)
             .map {
-                TorrentsInfoResponse.ofTorrent(it)
+                TorrentsInfoResponse.ofTorrent(it, downloadDir)
             }
     }
 
@@ -80,14 +82,18 @@ class QBittorrentEmulationController(
                     100,
                     1,
                     true,
-                    pieceRange = listOf(1,100),
+                    pieceRange = listOf(1, 100),
                     availability = 1.0.toFloat()
                 )
             }
         }
     }
 
-    @RequestMapping(path=  ["/api/v2/torrents/add"], method = [RequestMethod.POST], consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @RequestMapping(
+        path = ["/api/v2/torrents/add"],
+        method = [RequestMethod.POST],
+        consumes = [MediaType.MULTIPART_FORM_DATA_VALUE]
+    )
     fun addTorrent(
         @RequestPart urls: String,
         @RequestPart category: String,
@@ -97,11 +103,15 @@ class QBittorrentEmulationController(
         return "ok"
     }
 
-    @RequestMapping(path=  ["api/v2/torrents/delete"], method = [RequestMethod.POST], consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE])
+    @RequestMapping(
+        path = ["api/v2/torrents/delete"],
+        method = [RequestMethod.POST],
+        consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE]
+    )
     fun deleteTorrents(
         @RequestParam hashes: List<String>,
         @RequestParam deleteFiles: Boolean
-    ) : ResponseEntity<String> {
+    ): ResponseEntity<String> {
         hashes.forEach {
             torrentService.deleteTorrentByHash(it)
         }

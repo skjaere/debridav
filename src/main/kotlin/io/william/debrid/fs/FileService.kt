@@ -172,7 +172,13 @@ class FileService(
     ) {
         val debridFileContents: DebridFileContents = objectMapper.readValue(debridFile)
         var connection = URL(debridFileContents.link).openConnection() as HttpURLConnection
-
+        range?.let {
+            val start = range.start ?: 0
+            val finish = range.finish ?: debridFileContents.size
+            val byteRange = "bytes=$start-$finish"
+            logger.debug("applying byterange: $byteRange from $range")
+            connection.setRequestProperty("Range", byteRange)
+        }
         if (connection.getResponseCode() == 404) {
             handleDeadLink(debridFile)?.let {
                 connection = it
@@ -211,13 +217,7 @@ class FileService(
         connection: HttpURLConnection,
         out: OutputStream
     ) {
-        range?.let {
-            val start = range.start ?: 0
-            val finish = range.finish ?: debridFileContents.size
-            val byteRange = "bytes=$start-$finish"
-            logger.debug("applying byterange: $byteRange from $range")
-            connection.setRequestProperty("Range", byteRange)
-        }
+
         logger.info("Begin streaming of ${debridFileContents.link}")
         connection.inputStream.transferTo(out)
         logger.info("Streaming of ${debridFileContents.link} complete")

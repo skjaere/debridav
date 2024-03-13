@@ -1,11 +1,14 @@
 # TODO:
 
-
 - [x] Fix Sonarr integration
-- - [x] Delete file support
-- - [x] Implement local files
-- - [x] Create volume with rclone
-- - [x] Write docker compose
+-
+    - [x] Delete file support
+-
+    - [x] Implement local files
+-
+    - [x] Create volume with rclone
+-
+    - [x] Write docker compose
 - [x] Fix path queries
 
 - [ ] Tests
@@ -16,3 +19,4 @@
 - [x] Implement delete torrent endpoint
 - [ ] Implement SabNzbd controller
 - [x] Refresh dead links
+- [ ] Context initializer for tests

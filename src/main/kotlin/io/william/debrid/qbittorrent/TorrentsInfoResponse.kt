@@ -111,7 +111,7 @@ data class TorrentsInfoResponse(
     val upSpeed: Int
 ) {
     companion object {
-        fun ofTorrent(torrent: Torrent): TorrentsInfoResponse {
+        fun ofTorrent(torrent: Torrent, downloadDir: String): TorrentsInfoResponse {
             return TorrentsInfoResponse(
                 addedOn = torrent.created!!.toEpochMilli().toInt(),
                 amountLeft = 0,
@@ -120,7 +120,7 @@ data class TorrentsInfoResponse(
                 category = torrent.category!!.name!!,
                 completed = 1,
                 completionOn = torrent.created!!.toEpochMilli().toInt(),
-                contentPath = "/mnt/localdav/downloads/${torrent.name!!.replace(" ", "_")}/",
+                contentPath = "$downloadDir/${torrent.name!!.replace(" ", "_")}/",
                 dlLimit = 0,
                 dlSpeed = 0,
                 downloaded = 100,
@@ -139,7 +139,7 @@ data class TorrentsInfoResponse(
                 numLeeches = 0,
                 numSeeds = 0,
                 priority = 1,
-                progress = 100.0.toFloat(),
+                progress = 1.0.toFloat(),
                 ratio = 1.0.toFloat(),
                 ratioLimit = 1.0.toFloat(),
                 savePath = "/downloads",
@@ -160,9 +160,5 @@ data class TorrentsInfoResponse(
                 upSpeed = 0
             )
         }
-    }
-
-    enum class State {
-        DOWNLOADING, UPLOADING
     }
 }
