@@ -54,16 +54,15 @@ class FileResource(
         params: MutableMap<String, String>?,
         contentType: String?
     ) {
-        sendLocalContent(out,range, params, contentType)
+        sendLocalContent(out, range)
     }
 
-    private fun sendLocalContent(out: OutputStream,
-                         range: Range?,
-                         params: MutableMap<String, String>?,
-                         contentType: String?
+    private fun sendLocalContent(
+        out: OutputStream,
+        range: Range?
     ) {
         val stream = file.inputStream()
-        if(range != null) {
+        if (range != null) {
             RangeUtils.writeRange(stream, range, out)
         } else {
             stream.transferTo(out)
@@ -75,7 +74,7 @@ class FileResource(
     }
 
     override fun getContentType(accepts: String?): String? {
-        return if(file.isDebridFile())
+        return if (file.isDebridFile())
             "video/mp4"
         else {
             file.toURI().toURL().openConnection().contentType

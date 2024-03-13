@@ -1,8 +1,10 @@
 package io.william.debrid.qbittorrent
 
 import com.fasterxml.jackson.annotation.JsonAlias
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
+import org.springframework.http.HttpRequest
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -95,28 +97,17 @@ class QBittorrentEmulationController(
         return "ok"
     }
 
-    data class AddTorrentRequest(
-        val urls: String,
-        val torrents: ByteArray,
-        val savepath: String?,
-        val cookie: String,
-        val category: String,
-        val tags: String,
-        @JsonAlias("skip_checking")
-        val skipChecking: String,
-        val paused: String,
-        @JsonAlias("root_folder")
-        val rootFolder: String?,
-        val rename: String,
-        val upLimit: Int,
-        val dlLimit: Int,
-        val ratioLimit: Float?,
-        val seedingTimeLimit: Int?,
-        @JsonAlias("autoTMM")
-        val autoTmm: Boolean,
-        val sequentialDownload: String?,
-        val firstLastPiecePrio: String?
-    )
+    @RequestMapping(path=  ["api/v2/torrents/delete"], method = [RequestMethod.POST], consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE])
+    fun deleteTorrents(
+        @RequestParam hashes: List<String>,
+        @RequestParam deleteFiles: Boolean
+    ) : ResponseEntity<String> {
+        hashes.forEach {
+            torrentService.deleteTorrentByHash(it)
+        }
+
+        return ResponseEntity.ok("ok")
+    }
 
     data class TorrentFilesResponse(
         val index: Int,

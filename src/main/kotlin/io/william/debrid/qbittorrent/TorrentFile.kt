@@ -13,4 +13,5 @@ open class TorrentFile {
     open var fileName: String? = null
     open var size: Long? = null
     open var path: String? = null
+    open var hash: String? = null
 }

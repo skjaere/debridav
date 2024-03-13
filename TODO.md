@@ -13,4 +13,6 @@
 - [x] Dont use DB for files
 - [ ] Download small files
 - [ ] Implement torrent upload
-- [ ] Implement delete torrent endpoint
+- [x] Implement delete torrent endpoint
+- [ ] Implement SabNzbd controller
+- 

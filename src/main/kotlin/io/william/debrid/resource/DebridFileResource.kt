@@ -56,7 +56,7 @@ class DebridFileResource(
         params: MutableMap<String, String>?,
         contentType: String?
     ) {
-        var connection: URLConnection? = null
+        var connection: URLConnection?
         val took = measureTime {
             connection = URL(debridFile.link).openConnection()
         }

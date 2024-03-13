@@ -6,16 +6,30 @@ import io.william.debrid.fs.models.DebridFile
 import io.william.debrid.resource.DebridFileResource
 import io.william.debrid.resource.DirectoryResource
 import io.william.debrid.resource.FileResource
+import jakarta.annotation.PostConstruct
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.File
 import java.io.InputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.Instant
+import javax.naming.ConfigurationException
 
 @Service
 class FileService(
     private val localFileService: LocalStorageService,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    @Value("\${debridav.local.download.path}") val localPath: String
 ) {
+
+    @PostConstruct
+    fun postConstruct() {
+        if(localPath.endsWith("/")) {
+            throw ConfigurationException("debridav.local.file.path: $localPath should not contain a trailing slash")
+        }
+    }
+
     fun createDebridFile(createRequest: CreateFileRequest) {
         val debridFileContents = DebridFile(
             getNameFromPath(createRequest.file.path),
@@ -25,38 +39,87 @@ class FileService(
             createRequest.file.link
         )
 
-        localFileService.createDebridFile(
+        createDebridFile(
             createRequest.file.path,
             objectMapper.writeValueAsString(debridFileContents).byteInputStream()
         )
     }
 
-    fun createLocalFile(path: String, size: Long, inputStream: InputStream, contentType: String?): File {
-        return localFileService.createLocalFile(
+    fun createDebridFile(
+        directory: String,
+        inputStream: InputStream
+    ): File {
+        return createLocalFile("$localPath/$directory.debridfile", inputStream)
+    }
+
+    fun createLocalFile(
+        directory: String,
+        inputStream: InputStream
+    ): File {
+        val file = File(directory)
+        return writeFile(file, inputStream)
+    }
+
+    private fun writeFile(file: File, inputStream: InputStream): File {
+        if(file.exists()) {
+            throw FileExistsException("${file.path} already exists")
+        }
+        if(!Files.exists(file.toPath().parent)) {
+            Files.createDirectory(file.toPath().parent)
+        }
+        file.createNewFile()
+        inputStream.transferTo(file.outputStream())
+        return file
+    }
+
+    /*fun createLocalFile(path: String, size: Long, inputStream: InputStream, contentType: String?): File {
+        return createLocalFile(
             path,
             CreateFileRequest.Type.NORMAL,
             inputStream
         )
-    }
+    }*/
 
     private fun getNameFromPath(path: String): String = path.split("/").last()
 
-    fun moveFile(src: String, dest: String, name: String) {
-        localFileService.moveFile(src, dest, name)
+    fun moveFile(path: String, destinationDirectory: String, name: String) {
+        val src = File(path)
+        val destination = File("$destinationDirectory/$name")
+        if(!destination.parentFile.exists()) {
+            destination.parentFile.mkdirs()
+        }
+        Files.move(
+            src.toPath(),
+            destination.toPath(),
+            StandardCopyOption.REPLACE_EXISTING
+        )
     }
 
     fun createDirectory(path: String): DirectoryResource {
-        return DirectoryResource(localFileService.createDirectoryIfNotExist(path), this)
+        val file = File(path)
+
+        if(!Files.exists(file.toPath())) {
+            Files.createDirectory(file.toPath())
+        }
+
+        return DirectoryResource(file, this)
+
     }
 
     fun getResourceAtPath(path: String): Resource? {
-        return localFileService.getFileAtPath(path)
+        return getFileAtPath(path)
             ?.let {
                 if (it.isDirectory) it.toDirectoryResource()
                 else it.toFileResource()
             } ?: run {
-                localFileService.getFileAtPath("$path.debridfile")?.toFileResource()
+                getFileAtPath("$path.debridfile")?.toFileResource()
         }
+    }
+
+    fun getFileAtPath(path: String): File? {
+        val file = File("$localPath/$path")
+        if(file.exists()) return file
+        return null
     }
 
     fun File.toFileResource(): Resource? {
@@ -92,7 +155,7 @@ class FileService(
     }
 
     data class CreateFileRequest( // TODO: wth was I thinking?
-        val path: String,
+        val path: String?,
         val type: Type,
         val file: File
     ) {

@@ -20,6 +20,7 @@ class DirectoryResource(
 ) : AbstractResource(fileService), MakeCollectionableResource, MoveableResource, PutableResource, DeletableResource {
 
     private var children: List<Resource>? = null;
+
     init {
         children = directory.listFiles()
             ?.toList()
@@ -32,7 +33,7 @@ class DirectoryResource(
     }
 
     override fun getName(): String {
-        return if(directory.path == "/") "/" else directory.path!!.split("/").last()
+        return if (directory.path == "/") "/" else directory.path!!.split("/").last()
     }
 
     override fun authorise(request: Request?, method: Request.Method?, auth: Auth?): Boolean {
@@ -78,10 +79,8 @@ class DirectoryResource(
     override fun createNew(newName: String, inputStream: InputStream, length: Long, contentType: String?): Resource {
         val createdFile = fileService.createLocalFile(
             "${directory.path}/$newName",
-                length,
-                inputStream,
-                contentType
-                )
+            inputStream,
+        )
         return FileResource(createdFile, fileService)
     }
 

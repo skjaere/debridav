@@ -24,9 +24,7 @@ class TorrentService(
             premiumizeClient.getDirectDownloadLink(magnet)?.let { cachedTorrent ->
                 createTorrent(cachedTorrent, category)
                 cachedTorrent.content.forEach {
-                    //if(it.streamLink == it.link) {
-                        createFile(it)
-                    //}
+                    createFile(it)
                 }
             }
         }
@@ -34,7 +32,7 @@ class TorrentService(
 
     fun createFile(content: DirectDownloadResponse.Content) {
         val createRequest = FileService.CreateFileRequest(
-            "/downloads",
+            null,
             FileService.CreateFileRequest.Type.DEBRID,
             FileService.CreateFileRequest.File(
                 content.path,
@@ -91,6 +89,14 @@ class TorrentService(
         return torrentRepository.getByHash(hash)
     }
 
+    fun deleteTorrentByHash(hash: String): Boolean {
+        return torrentRepository.getByHash(hash)?.let {
+            torrentRepository.delete(it)
+            true
+        } ?: false
+
+    }
+
     fun generateHash(torrent: Torrent): String {
         val digest: MessageDigest = MessageDigest.getInstance("SHA-1")
         var bytes: ByteArray = "${torrent.id}${torrent.name}${torrent.created}${torrent.category}".toByteArray(Charsets.UTF_8)
@@ -99,7 +105,9 @@ class TorrentService(
 
         return bytesToHex(bytes)
     }
+
     protected val hexArray: CharArray = "0123456789ABCDEF".toCharArray()
+
     fun bytesToHex(bytes: ByteArray): String {
         val hexChars = CharArray(bytes.size * 2)
         for (j in bytes.indices) {
