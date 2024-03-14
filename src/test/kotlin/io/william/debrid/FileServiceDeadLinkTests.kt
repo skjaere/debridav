@@ -8,29 +8,21 @@ import io.william.debrid.resource.DebridFileResource
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import java.io.ByteArrayOutputStream
 import java.io.File
 
 
-@MockServerTest
-@SpringBootTest
 class FileServiceDeadLinkTests {
     private val objectMapper = jacksonObjectMapper()
-
-    @Autowired
-    private lateinit var stubbingService: StubbingService
+    private val stubbingService = StubbingService.getInstance()
 
     @Test
     fun servesRefreshedStreamWhenEncountering404() {
         //given
-
         stubbingService.mockDeadLink()
         stubbingService.mockIsCached()
         stubbingService.mockCachedContents()
         stubbingService.mockWorkingStream()
-
 
         val premiumizeClient = PremiumizeClient(
             "abd", "http://localhost:${stubbingService.port}"
@@ -73,7 +65,6 @@ class FileServiceDeadLinkTests {
         stubbingService.mockIsNotCached()
         stubbingService.mockDeadLink()
 
-
         val premiumizeClient = PremiumizeClient(
             "abd", "http://localhost:${stubbingService.port}"
         )
@@ -107,6 +98,5 @@ class FileServiceDeadLinkTests {
         val result = outputStream.toByteArray().toString(Charsets.UTF_8)
         assertEquals(result, "")
         assertFalse(debridFile.exists())
-
     }
 }

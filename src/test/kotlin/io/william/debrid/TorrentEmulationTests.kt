@@ -1,41 +1,27 @@
 package io.william.debrid
 
-/*@SpringBootTest(
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.MediaType
+import org.springframework.http.client.MultipartBodyBuilder
+import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.web.reactive.function.BodyInserters
+import java.io.File
+
+@SpringBootTest(
     classes = [DebridApplication::class, IntegrationTestContextConfiguration::class],
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
-)*/
-/*
+)
+@MockServerTest
 class TorrentEmulationTests {
-
-    companion object {
-        val port = TestSocketUtils.findAvailableTcpPort()
-
-        private var mockServer: ClientAndServer? = null
-
-        @JvmStatic
-        @BeforeAll
-        fun startServer() {
-            mockServer = ClientAndServer.startClientAndServer(port)
-
-        }
-
-        @JvmStatic
-        @AfterAll
-        fun stopServer() {
-            mockServer!!.stop()
-            FileUtils.deleteDirectory(File("/tmp/debridavtests/"))
-        }
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun registerPgProperties(registry: DynamicPropertyRegistry) {
-            registry.add("premiumize.baseurl") { "http://localhost:$port" }
-        }
-    }
-
 
     @Autowired
     private lateinit var webTestClient: WebTestClient
+
+    @Autowired
+    private lateinit var stubbingService: StubbingService
 
     @Test
     fun addingTorrentProducesDebridFileWhenTorrentCached() {
@@ -45,8 +31,8 @@ class TorrentEmulationTests {
         parts.part("category", "test")
         parts.part("paused", "false")
 
-        mockIsCached(port)
-        mockCachedContents(port)
+        stubbingService.mockIsCached()
+        stubbingService.mockCachedContents()
 
         //when
         webTestClient.post()
@@ -59,4 +45,4 @@ class TorrentEmulationTests {
         //then
         assertTrue(File("/tmp/debridavtests/downloads/a/b/c.debridfile").exists())
     }
-}*/
+}

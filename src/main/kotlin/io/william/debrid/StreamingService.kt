@@ -1,12 +1,10 @@
 package io.william.debrid
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.milton.http.Range
 import io.william.debrid.fs.models.DebridFileContents
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.io.File
 import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -17,11 +15,11 @@ class StreamingService {
     private val objectMapper = jacksonObjectMapper()
 
     fun streamDebridFile(
-        debridFile: File,
+        debridFileContents: DebridFileContents,
         range: Range?,
         out: OutputStream
     ): Result {
-        val debridFileContents: DebridFileContents = objectMapper.readValue(debridFile)
+        //val debridFileContents: DebridFileContents = objectMapper.readValue(debridFile)
         val connection = URL(debridFileContents.link).openConnection() as HttpURLConnection
         range?.let {
             val start = range.start ?: 0
@@ -46,7 +44,7 @@ class StreamingService {
         }
         return Result.OK
     }
-    
+
     private fun streamContents(
         connection: HttpURLConnection,
         out: OutputStream

@@ -1,5 +1,7 @@
 package io.william.debrid.resource
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import io.milton.http.Auth
 import io.milton.http.Range
 import io.milton.http.Request
@@ -7,6 +9,7 @@ import io.milton.resource.DeletableResource
 import io.milton.resource.GetableResource
 import io.william.debrid.StreamingService
 import io.william.debrid.fs.FileService
+import io.william.debrid.fs.models.DebridFileContents
 import java.io.File
 import java.io.OutputStream
 import java.time.Instant
@@ -17,6 +20,7 @@ class DebridFileResource(
     fileService: FileService,
     private val streamingService: StreamingService
 ) : AbstractResource(fileService), GetableResource, DeletableResource {
+    private val debridFileContents: DebridFileContents = jacksonObjectMapper().readValue(file)
 
     override fun getUniqueId(): String {
         return file.name
@@ -52,7 +56,7 @@ class DebridFileResource(
         params: MutableMap<String, String>?,
         contentType: String?
     ) {
-        val result = streamingService.streamDebridFile(file, range, out)
+        val result = streamingService.streamDebridFile(debridFileContents, range, out)
         if (result == StreamingService.Result.DEAD_LINK) {
             fileService.handleDeadLink(file)?.let {
                 streamingService.streamDebridFile(it, range, out)

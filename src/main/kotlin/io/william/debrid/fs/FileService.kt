@@ -169,19 +169,20 @@ class FileService(
         return objectMapper.readValue<DebridFileContents>(debridFile).size
     }
 
-    fun refreshDebridFile(debridFile: File): File? {
+    fun refreshDebridFile(debridFile: File): DebridFileContents? {
         val contents = objectMapper.readValue<DebridFileContents>(debridFile)
         val isCached = premiumizeClient.isCached(contents.magnet!!)
         if (isCached) {
             premiumizeClient.getDirectDownloadLink(contents.magnet!!)?.content
                 ?.firstOrNull { it.path == contents.originalPath }
                 ?.let {
+                    val newContents = DebridFileContents.ofDebridResponseContents(it, contents.magnet)
                     debridFile.writeText(
                         objectMapper.writeValueAsString(
-                            DebridFileContents.ofDebridResponseContents(it, contents.magnet)
+                            newContents
                         )
                     )
-                    return debridFile
+                    return newContents
                 } ?: run { return null }
         }
         return null
@@ -189,11 +190,11 @@ class FileService(
 
     fun handleDeadLink(
         debridFile: File,
-    ): File? {
+    ): DebridFileContents? {
         logger.info("Found stale link for ${debridFile.path}. Attempting refresh.")
         refreshDebridFile(debridFile)?.let {
             logger.info("Found fresh link for ${debridFile.path}")
-            return debridFile
+            return it
             //return objectMapper.readValue<DebridFileContents>(debridFile)
             //return DebridFileContents.ofDebridContents(it, debridFile.
         } ?: run {
