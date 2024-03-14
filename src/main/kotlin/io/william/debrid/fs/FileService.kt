@@ -2,8 +2,8 @@ package io.william.debrid.fs
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import io.milton.http.Range
 import io.milton.resource.Resource
+import io.william.debrid.StreamingService
 import io.william.debrid.fs.models.DebridFileContents
 import io.william.debrid.premiumize.PremiumizeClient
 import io.william.debrid.resource.DebridFileResource
@@ -16,8 +16,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.File
 import java.io.InputStream
-import java.io.OutputStream
-import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -29,6 +27,7 @@ class FileService(
     private val premiumizeClient: PremiumizeClient,
     @Value("\${debriDav.local.file.path}") val localPath: String,
     @Value("\${debridav.cache.local.debridfiles.threshold.mb}") val cacheLocalFilesMbThreshold: Int,
+    private val streamingService: StreamingService
 ) {
     private val logger = LoggerFactory.getLogger(FileService::class.java)
     private val objectMapper = jacksonObjectMapper()
@@ -46,7 +45,7 @@ class FileService(
         torrentFile: ByteArray?
     ) {
         val debridFileContents = DebridFileContents(
-            createRequest.file.path!!,
+            createRequest.file.path,
             createRequest.file.size,
             Instant.now().toEpochMilli(),
             createRequest.file.link,
@@ -138,7 +137,7 @@ class FileService(
             throw RuntimeException("Provided file is a directory")
         }
         return if (this.name.endsWith(".debridfile")) {
-            DebridFileResource(this, this@FileService)
+            DebridFileResource(this, this@FileService, streamingService)
         } else {
             if (this.exists())
                 return FileResource(this, this@FileService)
@@ -165,82 +164,43 @@ class FileService(
         }
     }
 
-    fun streamDebridFile(
-        debridFile: File,
-        range: Range?,
-        out: OutputStream
-    ) {
-        val debridFileContents: DebridFileContents = objectMapper.readValue(debridFile)
-        var connection = URL(debridFileContents.link).openConnection() as HttpURLConnection
-        range?.let {
-            val start = range.start ?: 0
-            val finish = range.finish ?: debridFileContents.size
-            val byteRange = "bytes=$start-$finish"
-            logger.debug("applying byterange: $byteRange from $range")
-            connection.setRequestProperty("Range", byteRange)
-        }
-        if (connection.getResponseCode() == 404) {
-            handleDeadLink(debridFile)?.let {
-                connection = it
-            } ?: run {
-                out.close()
-                return
-            }
-        }
-
-        try {
-            streamContents(range, debridFileContents, connection, out)
-        } catch (e: Exception) {
-            out.close()
-            connection.inputStream.close()
-            logger.error("error!", e)
-        }
-    }
-
-    private fun handleDeadLink(
-        debridFile: File,
-    ): HttpURLConnection? {
-        logger.info("Found stale link for ${debridFile.path}. Attempting refresh.")
-        refreshDebridFile(debridFile)?.let {
-            logger.info("Found fresh link for ${debridFile.path}")
-            return URL(it).openConnection() as HttpURLConnection
-        } ?: run {
-            logger.info("Unable to find fresh link for ${debridFile.path}. Deleting file")
-            debridFile.delete()
-            return null
-        }
-    }
-
-    private fun streamContents(
-        range: Range?,
-        debridFileContents: DebridFileContents,
-        connection: HttpURLConnection,
-        out: OutputStream
-    ) {
-
-        logger.info("Begin streaming of ${debridFileContents.link}")
-        connection.inputStream.transferTo(out)
-        logger.info("Streaming of ${debridFileContents.link} complete")
-        connection.inputStream.close()
-        out.close()
-    }
 
     fun getSizeOfCachedContent(debridFile: File): Long {
         return objectMapper.readValue<DebridFileContents>(debridFile).size
     }
 
-    fun refreshDebridFile(debridFile: File): String? {
+    fun refreshDebridFile(debridFile: File): File? {
         val contents = objectMapper.readValue<DebridFileContents>(debridFile)
         val isCached = premiumizeClient.isCached(contents.magnet!!)
         if (isCached) {
-            val updatedContents = premiumizeClient.getDirectDownloadLink(contents.magnet!!)
-            debridFile.writeText(objectMapper.writeValueAsString(updatedContents))
-            return updatedContents
-                ?.content
+            premiumizeClient.getDirectDownloadLink(contents.magnet!!)?.content
                 ?.firstOrNull { it.path == contents.originalPath }
-                ?.link
+                ?.let {
+                    debridFile.writeText(
+                        objectMapper.writeValueAsString(
+                            DebridFileContents.ofDebridResponseContents(it, contents.magnet)
+                        )
+                    )
+                    return debridFile
+                } ?: run { return null }
         }
         return null
+    }
+
+    fun handleDeadLink(
+        debridFile: File,
+    ): File? {
+        logger.info("Found stale link for ${debridFile.path}. Attempting refresh.")
+        refreshDebridFile(debridFile)?.let {
+            logger.info("Found fresh link for ${debridFile.path}")
+            return debridFile
+            //return objectMapper.readValue<DebridFileContents>(debridFile)
+            //return DebridFileContents.ofDebridContents(it, debridFile.
+        } ?: run {
+            logger.info("Unable to find fresh link for ${debridFile.path}. Deleting file")
+            debridFile.delete()
+            return null
+        }
     }
 
     data class CreateFileRequest( // TODO: wth was I thinking?

@@ -8,7 +8,7 @@ services:
     - TZ=Europe/Berlin
     - H2_FILE_PATH=/tmp/h2data
     - DEBRIDAV_LOCAL_FILE-PATH=/tmp/debridav
-    - DEBRIDAV_QBITTORENT_DOWNLOADDIR=/data/downloads
+    - DEBRIDAV_QBITTORRENT_DOWNLOADDIR=/data/downloads
     ports:
     - 8888:8080
     networks:
@@ -70,6 +70,8 @@ services:
     - /mnt/debridav2/tv:/tv:rshared
     ports:
     - 8990:8989
+    depends_on:
+    - rclone
     restart: unless-stopped
     networks:
     - mediaserver

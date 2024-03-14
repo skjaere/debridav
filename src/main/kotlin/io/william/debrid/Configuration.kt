@@ -2,17 +2,11 @@ package io.william.debrid
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
-import io.milton.servlet.MiltonFilter
 import io.milton.servlet.SpringMiltonFilter
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
-import java.io.PrintWriter
-import java.util.*
-import javax.sql.DataSource
 
 
 @Configuration
@@ -26,10 +20,14 @@ class FilterConfiguration {
         registration.setName("MiltonFilter");
         registration.addUrlPatterns("/*");
         registration.addInitParameter("milton.exclude.paths", "/files,/api,/version,/sabnzbd")
-        registration.addInitParameter("resource.factory.class",
-            "io.william.debrid.resource.StreamableResourceFactory");
-        registration.addInitParameter("controllerPackagesToScan",
-            "io.william.debrid")
+        registration.addInitParameter(
+            "resource.factory.class",
+            "io.william.debrid.resource.StreamableResourceFactory"
+        );
+        registration.addInitParameter(
+            "controllerPackagesToScan",
+            "io.william.debrid"
+        )
         registration.addInitParameter("contextConfigClass", "io.william.debrid.MiltonConfiguration")
         //registration.addInitParameter("milton.configurator",1 )
         //registration.order = 1
@@ -40,7 +38,7 @@ class FilterConfiguration {
     @Primary
     fun objectMapper(): ObjectMapper = jacksonObjectMapper()
 
-    private fun getMiltonFilter() : SpringMiltonFilter {
-        return  SpringMiltonFilter()
+    private fun getMiltonFilter(): SpringMiltonFilter {
+        return SpringMiltonFilter()
     }
 }

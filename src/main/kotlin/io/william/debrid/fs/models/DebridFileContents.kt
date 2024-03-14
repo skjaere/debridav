@@ -1,5 +1,8 @@
 package io.william.debrid.fs.models
 
+import io.william.debrid.premiumize.DirectDownloadResponse
+import java.time.Instant
+
 data class DebridFileContents(
     var originalPath: String,
     var size: Long,
@@ -8,4 +11,15 @@ data class DebridFileContents(
     var magnet: String?//,
     //val torrentFile: ByteArray?
 ) {
+    companion object {
+        fun ofDebridResponseContents(content: DirectDownloadResponse.Content, magnet: String?): DebridFileContents {
+            return DebridFileContents(
+                content.path,
+                content.size,
+                Instant.now().toEpochMilli(),
+                content.link,
+                magnet
+            )
+        }
+    }
 }

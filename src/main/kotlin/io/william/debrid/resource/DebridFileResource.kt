@@ -5,6 +5,7 @@ import io.milton.http.Range
 import io.milton.http.Request
 import io.milton.resource.DeletableResource
 import io.milton.resource.GetableResource
+import io.william.debrid.StreamingService
 import io.william.debrid.fs.FileService
 import java.io.File
 import java.io.OutputStream
@@ -13,7 +14,8 @@ import java.util.*
 
 class DebridFileResource(
     val file: File,
-    fileService: FileService
+    fileService: FileService,
+    private val streamingService: StreamingService
 ) : AbstractResource(fileService), GetableResource, DeletableResource {
 
     override fun getUniqueId(): String {
@@ -50,7 +52,14 @@ class DebridFileResource(
         params: MutableMap<String, String>?,
         contentType: String?
     ) {
-        fileService.streamDebridFile(file, range, out)
+        val result = streamingService.streamDebridFile(file, range, out)
+        if (result == StreamingService.Result.DEAD_LINK) {
+            fileService.handleDeadLink(file)?.let {
+                streamingService.streamDebridFile(it, range, out)
+            } ?: run {
+                out.close()
+            }
+        }
     }
 
     override fun getMaxAgeSeconds(auth: Auth?): Long {

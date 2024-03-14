@@ -5,67 +5,55 @@ import io.william.debrid.fs.FileService
 import io.william.debrid.fs.models.DebridFileContents
 import io.william.debrid.premiumize.PremiumizeClient
 import io.william.debrid.resource.DebridFileResource
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.mockserver.integration.ClientAndServer
-import org.mockserver.integration.ClientAndServer.startClientAndServer
-import org.springframework.test.util.TestSocketUtils
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
 import java.io.ByteArrayOutputStream
 import java.io.File
 
 
+@MockServerTest
+@SpringBootTest
 class FileServiceDeadLinkTests {
     private val objectMapper = jacksonObjectMapper()
 
-    companion object {
-        private var mockServer: ClientAndServer? = null
-        val port = TestSocketUtils.findAvailableTcpPort()
-
-        @JvmStatic
-        @BeforeAll
-        fun startServer() {
-            mockServer = startClientAndServer(port)
-        }
-
-        @JvmStatic
-        @AfterAll
-        fun stopServer() {
-            mockServer!!.stop()
-        }
-    }
+    @Autowired
+    private lateinit var stubbingService: StubbingService
 
     @Test
     fun servesRefreshedStreamWhenEncountering404() {
         //given
 
-        mockDeadLink(port)
-        mockIsCached(port)
-        mockCachedContents(port)
-        mockWorkingStream(port)
+        stubbingService.mockDeadLink()
+        stubbingService.mockIsCached()
+        stubbingService.mockCachedContents()
+        stubbingService.mockWorkingStream()
 
 
         val premiumizeClient = PremiumizeClient(
-            "abd", "http://localhost:$port"
+            "abd", "http://localhost:${stubbingService.port}"
         )
+        val streamingService = StreamingService()
         val fileService = FileService(
             premiumizeClient,
             "/tmp/debridtest/files",
-            2
+            2,
+            streamingService
         )
         val debridFile = File("/tmp/debridtest")
         val debridFileContents = DebridFileContents(
             "a/b/c",
             100,
             1000,
-            "http://localhost:$port/deadLink",
+            "http://localhost:${stubbingService.port}/deadLink",
             "magnet"
         )
+
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
         val fileResource = DebridFileResource(
-            debridFile, fileService
+            debridFile, fileService, streamingService
         )
 
         //when
@@ -82,30 +70,31 @@ class FileServiceDeadLinkTests {
     @Test
     fun deletesFileWhenLinkCannotBeRefreshed() {
         //given
-        mockIsNotCached(port)
-        mockDeadLink(port)
+        stubbingService.mockIsNotCached()
+        stubbingService.mockDeadLink()
 
 
         val premiumizeClient = PremiumizeClient(
-            "abd", "http://localhost:$port"
+            "abd", "http://localhost:${stubbingService.port}"
         )
+        val streamingService = StreamingService()
         val fileService = FileService(
             premiumizeClient,
             "/tmp/debridtest/files",
-            2
+            2,
+            streamingService
         )
         val debridFile = File("/tmp/debridtest")
         val debridFileContents = DebridFileContents(
             "a/b/c",
             100,
             1000,
-            "http://localhost:$port/deadLink",
+            "http://localhost:${stubbingService.port}/deadLink",
             "magnet"
-            //null
         )
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
         val fileResource = DebridFileResource(
-            debridFile, fileService
+            debridFile, fileService, streamingService
         )
 
         //when
@@ -120,6 +109,4 @@ class FileServiceDeadLinkTests {
         assertFalse(debridFile.exists())
 
     }
-
-
 }

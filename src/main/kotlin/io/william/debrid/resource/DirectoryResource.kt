@@ -2,12 +2,7 @@ package io.william.debrid.resource
 
 import io.milton.http.Auth
 import io.milton.http.Request
-import io.milton.resource.CollectionResource
-import io.milton.resource.DeletableResource
-import io.milton.resource.MakeCollectionableResource
-import io.milton.resource.MoveableResource
-import io.milton.resource.PutableResource
-import io.milton.resource.Resource
+import io.milton.resource.*
 import io.william.debrid.fs.FileService
 import java.io.File
 import java.io.InputStream
@@ -19,7 +14,7 @@ class DirectoryResource(
     fileService: FileService
 ) : AbstractResource(fileService), MakeCollectionableResource, MoveableResource, PutableResource, DeletableResource {
 
-    private var children: List<Resource>? = null;
+    private var children: List<Resource>? = null
 
     init {
         children = directory.listFiles()

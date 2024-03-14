@@ -7,9 +7,6 @@ import org.springframework.context.annotation.Configuration
 
 
 @Configuration
-/*@TestPropertySources(
-    TestPropertySource(value = ["classpath:application.properties"])
-)*/
 class IntegrationTestContextConfiguration {
     @Bean
     fun servletWebServerFactory(): ServletWebServerFactory {
