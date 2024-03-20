@@ -3,29 +3,33 @@ package io.william.debrid
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.william.debrid.premiumize.DirectDownloadResponse
 import org.mockserver.client.MockServerClient
-import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.MediaType
 import org.mockserver.model.Parameter
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.test.util.TestSocketUtils
 
 class StubbingService(
     @Value("\${mockserver.port}") val port: Int
 ) {
+    /*private var clientAndServer: ClientAndServer? = null
+
+    init {
+        clientAndServer = ClientAndServer.startClientAndServer(port)
+    }
+
     companion object {
         private var instance: StubbingService? = null
         fun getInstance(): StubbingService {
             if (instance == null) {
                 val port = TestSocketUtils.findAvailableTcpPort()
-                ClientAndServer.startClientAndServer(port)
+
                 instance = StubbingService(port)
             }
             return instance!!
         }
-    }
+    }*/
 
     private val objectMapper = jacksonObjectMapper()
 
