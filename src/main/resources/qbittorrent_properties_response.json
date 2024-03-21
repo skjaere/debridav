@@ -145,7 +145,7 @@
   "rss_processing_enabled": false,
   "rss_refresh_interval": 30,
   "rss_smart_episode_filters": "s(\\d+)e(\\d+)\n(\\d+)x(\\d+)\n(\\d{4}[.\\-]\\d{1,2}[.\\-]\\d{1,2})\n(\\d{1,2}[.\\-]\\d{1,2}[.\\-]\\d{4})",
-  "save_path": "%DOWNLOAD_DIR",
+  "save_path": "%DOWNLOAD_DIR%",
   "save_path_changed_tmm_enabled": false,
   "save_resume_data_interval": 60,
   "scan_dirs": {},
