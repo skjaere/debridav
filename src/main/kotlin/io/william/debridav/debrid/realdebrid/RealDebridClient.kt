@@ -26,13 +26,15 @@ class RealDebridClient(
     override fun isCached(magnet: String): Boolean {
         try {
             val hash = MagnetParser.getHashFromMagnet(magnet)
-            return (restClient.get()
+            return restClient.get()
                     .uri("$baseUrl/torrents/instantAvailability/$hash")
                     .accept(MediaType.APPLICATION_JSON)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
                     .retrieve()
                     .body(JsonNode::class.java)
-                    ?.get(hash!!.lowercase())?.get("rd")?.size() ?: -1) > 0
+                    ?.get(hash!!.lowercase())?.get("rd")
+                    ?.toList()
+                    ?.isNotEmpty() ?: false
         } catch (e: UnresolvedAddressException) {
             logger.error("Failed to check cache for $magnet")
             throw RuntimeException(e)
