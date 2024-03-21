@@ -1,6 +1,6 @@
 package io.william.debridav
 
-import io.william.debridav.fs.models.DebridFileContents
+import io.william.debridav.fs.DebridFileContents
 import org.mockito.ArgumentMatcher
 
 class DebridContentsMatcher(private val contents: DebridFileContents) : ArgumentMatcher<DebridFileContents> {

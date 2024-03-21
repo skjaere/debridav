@@ -8,8 +8,8 @@ import io.milton.http.Request
 import io.milton.resource.DeletableResource
 import io.milton.resource.GetableResource
 import io.william.debridav.StreamingService
+import io.william.debridav.fs.DebridFileContents
 import io.william.debridav.fs.FileService
-import io.william.debridav.fs.models.DebridFileContents
 import java.io.File
 import java.io.OutputStream
 import java.time.Instant

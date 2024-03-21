@@ -1,7 +1,7 @@
 package io.william.debridav
 
 import io.milton.http.Range
-import io.william.debridav.fs.models.DebridFileContents
+import io.william.debridav.fs.DebridFileContents
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.io.OutputStream
@@ -17,7 +17,6 @@ class StreamingService {
             range: Range?,
             out: OutputStream
     ): Result {
-        //val debridFileContents: DebridFileContents = objectMapper.readValue(debridFile)
         val connection = URL(debridFileContents.link).openConnection() as HttpURLConnection
         range?.let {
             val start = range.start ?: 0
@@ -26,7 +25,7 @@ class StreamingService {
             logger.debug("applying byterange: {}  from {}", byteRange, range)
             connection.setRequestProperty("Range", byteRange)
         }
-        if (connection.getResponseCode() == 404) {
+        if (connection.responseCode.isErrorResponse()) {
             return Result.DEAD_LINK
         }
 
@@ -42,6 +41,9 @@ class StreamingService {
         }
         return Result.OK
     }
+
+    fun Int.okayResponse() = this in 200..299
+    fun Int.isErrorResponse() = !this.okayResponse()
 
     private fun streamContents(
             connection: HttpURLConnection,

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import io.milton.resource.Resource
 import io.william.debridav.StreamingService
 import io.william.debridav.debrid.DebridClient
-import io.william.debridav.fs.models.DebridFileContents
 import io.william.debridav.resource.DebridFileResource
 import io.william.debridav.resource.DirectoryResource
 import io.william.debridav.resource.FileResource

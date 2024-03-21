@@ -4,8 +4,8 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.milton.http.Range
 import io.william.debridav.debrid.DebridLink
 import io.william.debridav.debrid.premiumize.PremiumizeClient
+import io.william.debridav.fs.DebridFileContents
 import io.william.debridav.fs.FileService
-import io.william.debridav.fs.models.DebridFileContents
 import io.william.debridav.resource.DebridFileResource
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

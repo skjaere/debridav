@@ -111,7 +111,7 @@ services:
     container_name: jellyseerr
     environment:
       - LOG_LEVEL=debug
-      - TZ=Asia/Tashkent
+      - TZ=Europe/Berlin
     ports:
       - 5055:5055
     volumes:
