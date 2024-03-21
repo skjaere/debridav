@@ -1,6 +1,6 @@
 package io.william.debridav.qbittorrent
 
-import com.fasterxml.jackson.annotation.JsonAlias
+import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ResourceLoader
 import org.springframework.http.MediaType
@@ -128,9 +128,9 @@ class QBittorrentEmulationController(
             val size: Int,
             val progress: Int,
             val priority: Int,
-            @JsonAlias("is_seed")
+            @JsonProperty("is_seed")
             val isSeed: Boolean,
-            @JsonAlias("piece_range")
+            @JsonProperty("piece_range")
             val pieceRange: List<Int>,
             val availability: Float
     )

@@ -1,68 +1,68 @@
 package io.william.debridav.qbittorrent
 
-import com.fasterxml.jackson.annotation.JsonAlias
+import com.fasterxml.jackson.annotation.JsonProperty
 
 data class TorrentPropertiesResponse(
-        @JsonAlias("save_path")
+        @JsonProperty("save_path")
         val savePath: String,
-        @JsonAlias("creation_date")
+        @JsonProperty("creation_date")
         val creationDate: Int,
-        @JsonAlias("piece_size")
+        @JsonProperty("piece_size")
         val pieceSize: Int,
         val comment: String,
-        @JsonAlias("total_wasted")
+        @JsonProperty("total_wasted")
         val totalWasted: Int,
-        @JsonAlias("total_uploaded")
+        @JsonProperty("total_uploaded")
         val totalUploaded: Int,
-        @JsonAlias("total_uploaded_session")
+        @JsonProperty("total_uploaded_session")
         val totalUploadedSession: Int,
-        @JsonAlias("total_downloaded")
+        @JsonProperty("total_downloaded")
         val totalDownloaded: Int,
-        @JsonAlias("total_downloaded_session")
+        @JsonProperty("total_downloaded_session")
         val totalDownloadedSession: Int,
-        @JsonAlias("up_limit")
+        @JsonProperty("up_limit")
         val upLimit: Int,
-        @JsonAlias("dl_limit")
+        @JsonProperty("dl_limit")
         val dlLimit: Int,
-        @JsonAlias("time_elapsed")
+        @JsonProperty("time_elapsed")
         val timeElapsed: Int,
-        @JsonAlias("seeding_time")
+        @JsonProperty("seeding_time")
         val seedingTime: Int,
-        @JsonAlias("nb_connections")
+        @JsonProperty("nb_connections")
         val nbConnections: Int,
-        @JsonAlias("nb_connections_limit")
+        @JsonProperty("nb_connections_limit")
         val nbConnectionsLimit: Int,
-        @JsonAlias("share_ratio")
+        @JsonProperty("share_ratio")
         val shareRatio: Float,
-        @JsonAlias("addition_date")
+        @JsonProperty("addition_date")
         val additionDate: Int,
-        @JsonAlias("completion_date")
+        @JsonProperty("completion_date")
         val completionDate: Int,
-        @JsonAlias("created_by")
+        @JsonProperty("created_by")
         val createdBy: String,
-        @JsonAlias("dl_speed_avg")
+        @JsonProperty("dl_speed_avg")
         val dlSpeedAvg: Int,
-        @JsonAlias("dl_speed")
+        @JsonProperty("dl_speed")
         val dlSpeed: Int,
         val eta: Int,
-        @JsonAlias("last_seen")
+        @JsonProperty("last_seen")
         val lastSeen: Int,
         val peers: Int,
-        @JsonAlias("peers_total")
+        @JsonProperty("peers_total")
         val peersTotal: Int,
-        @JsonAlias("pieces_have")
+        @JsonProperty("pieces_have")
         val piecesHave: Int,
-        @JsonAlias("pieces_num")
+        @JsonProperty("pieces_num")
         val piecesNum: Int,
         val reannounce: Int,
         val seeds: Int,
-        @JsonAlias("seeds_total")
+        @JsonProperty("seeds_total")
         val seedsTotal: Int,
-        @JsonAlias("total_size")
+        @JsonProperty("total_size")
         val totalSize: Int,
-        @JsonAlias("up_speed_avg")
+        @JsonProperty("up_speed_avg")
         val upSpeedAvg: Int,
-        @JsonAlias("up_speed")
+        @JsonProperty("up_speed")
         val upSpeed: Int
 ) {
     companion object {
