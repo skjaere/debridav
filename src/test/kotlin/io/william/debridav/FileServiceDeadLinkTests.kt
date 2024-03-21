@@ -2,7 +2,7 @@ package io.william.debridav
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.milton.http.Range
-import io.william.debridav.debrid.premiumize.DirectDownloadResponse
+import io.william.debridav.debrid.DebridLink
 import io.william.debridav.debrid.premiumize.PremiumizeClient
 import io.william.debridav.fs.FileService
 import io.william.debridav.fs.models.DebridFileContents
@@ -55,27 +55,17 @@ class FileServiceDeadLinkTests {
                 )
         ).willReturn(StreamingService.Result.DEAD_LINK)
 
-        given(
-                premiumizeClient.isCached("magnet")
-        ).willReturn(true)
-        val directDownloadResponse = DirectDownloadResponse(
-                "ok",
-                "a/b",
+        given(premiumizeClient.isCached("magnet")).willReturn(true)
+
+        val directDownloadResponse = listOf(DebridLink(
+                "a/b/c",
+                1000,
+                "video/mp4",
                 "https://test.com/video.mkv",
-                10000,
-                listOf(
-                        DirectDownloadResponse.Content(
-                                "a/b/c",
-                                1000,
-                                "https://test.com/video.mkv",
-                                null,
-                                "not_needed"
-                        )
-                )
-        )
-        given(
-                premiumizeClient.getDirectDownloadLink("magnet")
-        ).willReturn(directDownloadResponse)
+        ))
+
+        given(premiumizeClient.getDirectDownloadLink("magnet"))
+                .willReturn(directDownloadResponse)
 
         doAnswer {
             outputStream.write("It works!".toByteArray())
@@ -85,8 +75,8 @@ class FileServiceDeadLinkTests {
         ).streamDebridFile(
                 argThat(
                         DebridContentsMatcher(
-                                DebridFileContents.ofDebridResponseContents(
-                                        directDownloadResponse.content.first(),
+                                DebridFileContents.ofDebridLink(
+                                        directDownloadResponse.first(),
                                         "magnet"
                                 )
                         )

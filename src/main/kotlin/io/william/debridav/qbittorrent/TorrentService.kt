@@ -1,7 +1,7 @@
 package io.william.debridav.qbittorrent
 
 import io.william.debridav.debrid.DebridClient
-import io.william.debridav.debrid.premiumize.DirectDownloadResponse
+import io.william.debridav.debrid.DebridLink
 import io.william.debridav.fs.FileService
 import io.william.debridav.repository.CategoryRepository
 import io.william.debridav.repository.TorrentFileRepository
@@ -24,17 +24,20 @@ class TorrentService(
         @Value("\${debriDav.local.file.path}") private val localFilePath: String
 ) {
     private val logger = LoggerFactory.getLogger(TorrentService::class.java)
+
     fun addTorrent(category: String, magnet: String): Boolean {
         if (debridClient.isCached(magnet)) {
-            debridClient.getDirectDownloadLink(magnet)?.let { cachedTorrent ->
-                createTorrent(cachedTorrent, category)
-                cachedTorrent.content.forEach {
+            debridClient.getDirectDownloadLink(magnet).let { cachedFiles ->
+                if (cachedFiles.isEmpty()) {
+                    logger.warn("Received empty list of files from debrid client")
+                    return false
+                }
+                createTorrent(cachedFiles, category)
+                cachedFiles.forEach {
                     createFile(it, magnet)
                 }
                 return true
             }
-            logger.info("error getting download link")
-            return false
         } else {
             logger.info("$magnet is not cached")
             return false
@@ -42,36 +45,26 @@ class TorrentService(
     }
 
     fun createFile(
-            content: DirectDownloadResponse.Content,
+            content: DebridLink,
             magnet: String
     ) {
         val createRequest = FileService.CreateFileRequest(
-                null,
-                FileService.CreateFileRequest.Type.DEBRID,
-                FileService.CreateFileRequest.File(
-                        "$localFilePath/$downloadPath/${content.path}",
-                        content.size,
-                        content.link,
-                        content.streamLink
-                )
+                "$localFilePath/$downloadPath/${content.path}",
+                content.size,
+                content.link
         )
         fileService.createDebridFile(createRequest, magnet, null)
     }
 
-    fun createTorrent(content: DirectDownloadResponse, categoryName: String) {
+    fun createTorrent(content: List<DebridLink>, categoryName: String) {
         val torrent = Torrent()
         torrent.category = categoryRepository.findByName(categoryName)
-                ?: run {
-                    val newCategory = Category()
-                    newCategory.name = categoryName
-                    newCategory.downloadPath = "/downloads"
-                    categoryRepository.save(newCategory)
-                }
-        torrent.name = content.filename.split("/").first()
+                ?: run { createCategory(categoryName) }
+        torrent.name = content.first().path.split("/").first()
         torrent.created = Instant.now()
         torrent.hash = generateHash(torrent)
         torrent.savePath = "${torrent.category!!.downloadPath}/"
-        torrent.files = content.content.map {
+        torrent.files = content.map {
             val torrentFile = TorrentFile()
             torrentFile.fileName = it.path
             torrentFile.size = it.size
@@ -112,7 +105,7 @@ class TorrentService(
     }
 
 
-    fun generateHash(torrent: Torrent): String {
+    private fun generateHash(torrent: Torrent): String {
         val digest: MessageDigest = MessageDigest.getInstance("SHA-1")
         var bytes: ByteArray = "${torrent.id}${torrent.name}${torrent.created}${torrent.category}".toByteArray(Charsets.UTF_8)
         digest.update(bytes, 0, bytes.size)
@@ -123,7 +116,7 @@ class TorrentService(
 
     protected val hexArray: CharArray = "0123456789ABCDEF".toCharArray()
 
-    fun bytesToHex(bytes: ByteArray): String {
+    private fun bytesToHex(bytes: ByteArray): String {
         val hexChars = CharArray(bytes.size * 2)
         for (j in bytes.indices) {
             val v = bytes[j].toInt() and 0xFF

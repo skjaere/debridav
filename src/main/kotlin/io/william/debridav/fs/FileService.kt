@@ -45,21 +45,20 @@ class FileService(
             torrentFile: ByteArray?
     ) {
         val debridFileContents = DebridFileContents(
-                createRequest.file.path,
-                createRequest.file.size,
+                createRequest.path,
+                createRequest.size,
                 Instant.now().toEpochMilli(),
-                createRequest.file.link,
-                magnet//,
-                //torrentFile
+                createRequest.link,
+                magnet
         )
-        if (createRequest.file.size < cacheLocalFilesMbThreshold * 1024 * 1024) {
+        if (createRequest.size < cacheLocalFilesMbThreshold * 1024 * 1024) {
             createLocalFile(
-                    createRequest.file.path,
-                    URL(createRequest.file.link).openConnection().getInputStream()
+                    createRequest.path,
+                    URL(createRequest.link).openConnection().getInputStream()
             )
         } else {
             createDebridFile(
-                    createRequest.file.path,
+                    createRequest.path,
                     objectMapper.writeValueAsString(debridFileContents).byteInputStream()
             )
         }
@@ -173,10 +172,10 @@ class FileService(
         val contents = objectMapper.readValue<DebridFileContents>(debridFile)
         val isCached = debridClient.isCached(contents.magnet!!)
         if (isCached) {
-            debridClient.getDirectDownloadLink(contents.magnet!!)?.content
-                    ?.firstOrNull { it.path == contents.originalPath }
+            debridClient.getDirectDownloadLink(contents.magnet!!)
+                    .firstOrNull { it.path == contents.originalPath }
                     ?.let {
-                        val newContents = DebridFileContents.ofDebridResponseContents(it, contents.magnet)
+                        val newContents = DebridFileContents.ofDebridLink(it, contents.magnet)
                         debridFile.writeText(
                                 objectMapper.writeValueAsString(
                                         newContents
@@ -195,8 +194,6 @@ class FileService(
         refreshDebridFile(debridFile)?.let {
             logger.info("Found fresh link for ${debridFile.path}")
             return it
-            //return objectMapper.readValue<DebridFileContents>(debridFile)
-            //return DebridFileContents.ofDebridContents(it, debridFile.
         } ?: run {
             logger.info("Unable to find fresh link for ${debridFile.path}. Deleting file")
             debridFile.delete()
@@ -204,18 +201,9 @@ class FileService(
         }
     }
 
-    data class CreateFileRequest( // TODO: wth was I thinking?
-            val path: String?,
-            val type: Type,
-            val file: File
-    ) {
-        data class File(
-                val path: String,
-                val size: Long,
-                val link: String,
-                val streamingLink: String?
-        )
-
-        enum class Type { DEBRID, NORMAL }
-    }
+    data class CreateFileRequest(
+            val path: String,
+            val size: Long,
+            val link: String
+    )
 }

@@ -3,7 +3,7 @@ package io.william.debridav.debrid.realdebrid
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.william.debridav.debrid.DebridClient
-import io.william.debridav.debrid.premiumize.DirectDownloadResponse
+import io.william.debridav.debrid.DebridLink
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
@@ -42,32 +42,22 @@ class RealDebridClient(
         }
     }
 
-    override fun getDirectDownloadLink(magnet: String): DirectDownloadResponse? {
-        val files = addMagnet(magnet)?.let { addMagnetResponse ->
+    override fun getDirectDownloadLink(magnet: String): List<DebridLink> {
+        return addMagnet(magnet)?.let { addMagnetResponse ->
             selectFilesFromTorrent(addMagnetResponse.id)
-
-            getTorrentInfo(addMagnetResponse.id)?.let { hostedFiles ->
+            getTorrentInfo(addMagnetResponse.id).let { hostedFiles ->
                 hostedFiles
                         .mapNotNull { unrestrictLink(it.link) }
                         .map { unrestrictedLink ->
-                            DirectDownloadResponse.Content(
+                            DebridLink(
                                     unrestrictedLink.filename,
                                     unrestrictedLink.filesize,
-                                    unrestrictedLink.download,
-                                    "",
-                                    ""
+                                    unrestrictedLink.mimeType,
+                                    unrestrictedLink.download
                             )
                         }
             }
         } ?: emptyList()
-
-        return DirectDownloadResponse(
-                "ok",
-                "ok",
-                "",
-                100,
-                files
-        )
     }
 
     data class AddMagnetResponse(
@@ -95,7 +85,7 @@ class RealDebridClient(
             val link: String
     )
 
-    private fun getTorrentInfo(id: String): List<HostedFile>? {
+    private fun getTorrentInfo(id: String): List<HostedFile> {
         val response = restClient.get()
                 .uri("$baseUrl/torrents/info/$id")
                 .accept(MediaType.APPLICATION_JSON)
@@ -113,7 +103,7 @@ class RealDebridClient(
                         it["links"][idx].asText()
                 )
             }
-        }?.toList()
+        }?.toList() ?: emptyList()
     }
 
     private fun selectFilesFromTorrent(torrentId: String) {
@@ -125,35 +115,8 @@ class RealDebridClient(
                 .body("files=all")
                 .retrieve()
                 .body(AddMagnetResponse::class.java)
-        logger.info("selected files")
     }
 
-    data class DownloadedFile(
-            val id: String,
-            val fileName: String,
-            val fileSize: Long,
-            val link: String
-    )
-
-    private fun getDownloadedFiles(ids: List<String>): List<DownloadedFile> {
-        val response = restClient.get()
-                .uri("$baseUrl/downloads")
-                .accept(MediaType.APPLICATION_JSON)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
-                .retrieve()
-                .body(JsonNode::class.java)
-
-        return response?.filter { file ->
-            ids.contains(file["id"].asText())
-        }?.map {
-            DownloadedFile(
-                    it["id"].asText(),
-                    it["filename"].asText(),
-                    it["bytes"].asLong(),
-                    it["download"].asText()
-            )
-        } ?: emptyList()
-    }
 
     data class UnrestrictedLink(
             val id: String,
