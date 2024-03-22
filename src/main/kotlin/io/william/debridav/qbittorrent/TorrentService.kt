@@ -7,7 +7,6 @@ import io.william.debridav.repository.CategoryRepository
 import io.william.debridav.repository.TorrentFileRepository
 import io.william.debridav.repository.TorrentRepository
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.security.MessageDigest
 import java.time.Instant
@@ -19,9 +18,7 @@ class TorrentService(
         private val fileService: FileService,
         private val torrentRepository: TorrentRepository,
         private val torrentFileRepository: TorrentFileRepository,
-        private val categoryRepository: CategoryRepository,
-        @Value("\${debriDav.local.download.path}") private val downloadPath: String,
-        @Value("\${debriDav.local.file.path}") private val localFilePath: String
+        private val categoryRepository: CategoryRepository
 ) {
     private val logger = LoggerFactory.getLogger(TorrentService::class.java)
 
@@ -49,7 +46,7 @@ class TorrentService(
             magnet: String
     ) {
         val createRequest = FileService.CreateFileRequest(
-                "$localFilePath/$downloadPath/${content.path}",
+                content.path,
                 content.size,
                 content.link
         )
@@ -78,7 +75,6 @@ class TorrentService(
         return categoryRepository.findByName(categoryName)?.let { category ->
             torrentRepository.findByCategory(category)
         } ?: emptyList()
-
     }
 
     fun createCategory(categoryName: String): Category {

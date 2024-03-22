@@ -25,6 +25,7 @@ import javax.naming.ConfigurationException
 class FileService(
         private val debridClient: DebridClient,
         @Value("\${debriDav.local.file.path}") val localPath: String,
+        @Value("\${debriDav.local.download.path}") val downloadPath: String,
         @Value("\${debridav.cache.local.debridfiles.threshold.mb}") val cacheLocalFilesMbThreshold: Int,
         @Value("\${debridav.debridclient}") val debridProvider: DebridProvider,
         private val streamingService: StreamingService
@@ -70,10 +71,10 @@ class FileService(
     }
 
     fun createDebridFile(
-            directory: String,
+            path: String,
             inputStream: InputStream
     ): File {
-        return createLocalFile("$directory.debridfile", inputStream)
+        return createLocalFile("$localPath$downloadPath/$path.debridfile", inputStream)
     }
 
     fun createLocalFile(

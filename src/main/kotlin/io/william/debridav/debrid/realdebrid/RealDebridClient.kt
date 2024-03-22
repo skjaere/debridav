@@ -2,6 +2,7 @@ package io.william.debridav.debrid.realdebrid
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.william.debridav.debrid.DebridClient
 import io.william.debridav.debrid.DebridResponse
 import io.william.debridav.fs.DebridProvider
@@ -46,19 +47,25 @@ class RealDebridClient(
     }
 
     override fun getDirectDownloadLink(magnet: String): List<DebridResponse> {
+        val movieExtensions = listOf(".mkv", ".mp4")
         return addMagnet(magnet)?.let { addMagnetResponse ->
-            selectFilesFromTorrent(addMagnetResponse.id)
-            getTorrentInfo(addMagnetResponse.id).let { hostedFiles ->
-                hostedFiles
-                        .mapNotNull { unrestrictLink(it.link) }
-                        .map { unrestrictedLink ->
-                            DebridResponse(
-                                    unrestrictedLink.filename,
-                                    unrestrictedLink.filesize,
-                                    unrestrictedLink.mimeType,
-                                    unrestrictedLink.download
-                            )
-                        }
+            getTorrentInfo(addMagnetResponse.id)?.let { torrent ->
+                val filmFileIds = torrent.files
+                        .filter { hostedFile -> movieExtensions.any { extension -> hostedFile.fileName.endsWith(extension) } }
+                        .map { hostedFile -> hostedFile.fileId }
+                selectFilesFromTorrent(addMagnetResponse.id, filmFileIds)
+                getTorrentInfoSelected(addMagnetResponse.id).let { selectedHostedFiles ->
+                    selectedHostedFiles
+                            .mapNotNull { unrestrictLink(it.link!!) }
+                            .map { unrestrictedLink ->
+                                DebridResponse(
+                                        "${torrent.name}/${unrestrictedLink.filename}",
+                                        unrestrictedLink.filesize,
+                                        unrestrictedLink.mimeType,
+                                        unrestrictedLink.download
+                                )
+                            }
+                }
             }
         } ?: emptyList()
     }
@@ -83,41 +90,75 @@ class RealDebridClient(
         return response
     }
 
+    data class Torrent(
+            val name: String,
+            val files: List<HostedFile>
+    )
+
     data class HostedFile(
             val fileId: String,
             val fileName: String,
             val fileSize: Long,
-            val link: String
+            val link: String?
     )
 
-    private fun getTorrentInfo(id: String): List<HostedFile> {
+    private fun getTorrentInfo(id: String): Torrent? {
         val response = restClient.get()
                 .uri("$baseUrl/torrents/info/$id")
                 .accept(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
                 .retrieve()
                 .body(JsonNode::class.java)
-
+        logger.info("got response")
+        logger.info(jacksonObjectMapper().writeValueAsString(response))
         return response?.let {
             it as ObjectNode
-            it["files"].mapIndexed { idx, file ->
-                HostedFile(
-                        file["id"].asText(),
-                        file["path"].asText(),
-                        file["bytes"].asLong(),
-                        it["links"][idx].asText()
-                )
-            }
+            Torrent(
+                    it["filename"].asText(),
+                    it["files"]
+                            .map { file ->
+                                HostedFile(
+                                        file["id"].asText(),
+                                        file["path"].asText(),
+                                        file["bytes"].asLong(),
+                                        null
+                                )
+                            }
+            )
+        }
+    }
+
+    private fun getTorrentInfoSelected(id: String): List<HostedFile> {
+        val response = restClient.get()
+                .uri("$baseUrl/torrents/info/$id")
+                .accept(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+                .retrieve()
+                .body(JsonNode::class.java)
+        logger.info("got response")
+        logger.info(jacksonObjectMapper().writeValueAsString(response))
+        return response?.let {
+            it as ObjectNode
+            it["files"]
+                    .filter { file -> file["selected"].asInt() == 1 }
+                    .mapIndexed { idx, file ->
+                        HostedFile(
+                                file["id"].asText(),
+                                file["path"].asText(),
+                                file["bytes"].asLong(),
+                                it["links"][idx].asText()
+                        )
+                    }
         }?.toList() ?: emptyList()
     }
 
-    private fun selectFilesFromTorrent(torrentId: String) {
+    private fun selectFilesFromTorrent(torrentId: String, fileIds: List<String>) {
         restClient.post()
                 .uri("$baseUrl/torrents/selectFiles/$torrentId")
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
-                .body("files=all")
+                .body("files=${fileIds.joinToString(",")}")
                 .retrieve()
                 .body(AddMagnetResponse::class.java)
     }

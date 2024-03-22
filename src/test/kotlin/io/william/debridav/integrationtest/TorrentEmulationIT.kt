@@ -7,6 +7,7 @@ import io.william.debridav.integrationtest.config.IntegrationTestContextConfigur
 import io.william.debridav.integrationtest.config.MockServerTest
 import io.william.debridav.integrationtest.config.StubbingService
 import io.william.debridav.qbittorrent.TorrentsInfoResponse
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -86,5 +87,12 @@ class TorrentEmulationIT {
         val parsedResponse: List<TorrentsInfoResponse> = objectMapper.readValue(torrentsInfoResponse, type)
 
         assertEquals("/mnt/localdav/downloads/a", parsedResponse.first().contentPath)
+    }
+
+    @AfterEach
+    fun deleteTestFiles() {
+        File("/tmp/debridavtests/downloads/a/b/c.debridfile").let {
+            if (it.exists()) it.delete()
+        }
     }
 }

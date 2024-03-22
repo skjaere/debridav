@@ -29,6 +29,7 @@ class FileServiceTest {
         val fileService = FileService(
                 premiumizeClient,
                 "/tmp/debridtest/files",
+                "/downloads",
                 2,
                 DebridProvider.PREMIUMIZE,
                 streamingService
@@ -63,6 +64,7 @@ class FileServiceTest {
         val fileService = FileService(
                 premiumizeClient,
                 "/tmp/debridtest/files",
+                "/downloads",
                 2,
                 DebridProvider.PREMIUMIZE,
                 streamingService
@@ -89,6 +91,7 @@ class FileServiceTest {
         val fileService = FileService(
                 debridClient,
                 "/tmp/debridtest/files",
+                "/downloads",
                 2,
                 DebridProvider.PREMIUMIZE,
                 streamingService
