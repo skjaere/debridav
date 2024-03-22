@@ -111,7 +111,8 @@ class FileServiceTest {
                 expectedContents,
                 result
         )
-        assertEquals(expectedContents,
+        assertEquals(
+                expectedContents,
                 jacksonObjectMapper().readValue<DebridFileContents>(debridFile.readText())
         )
     }

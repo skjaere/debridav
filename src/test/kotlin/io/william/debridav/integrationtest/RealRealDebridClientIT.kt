@@ -2,6 +2,9 @@ package io.william.debridav.integrationtest
 
 import io.william.debridav.DebridApplication
 import io.william.debridav.MiltonConfiguration
+import io.william.debridav.integrationtest.config.IntegrationTestContextConfiguration
+import io.william.debridav.integrationtest.config.MockServerTest
+import io.william.debridav.integrationtest.config.StubbingService
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -27,21 +30,24 @@ import java.time.Duration
 
         ]
 )
-//@MockServerTest
+@MockServerTest
 class RealDebridClientIT {
     @Autowired
     private lateinit var webTestClient: WebTestClient
+
+    @Autowired
+    private lateinit var stubbingService: StubbingService
 
     @Test
     fun realDebrid() {
         //given
         val parts = MultipartBodyBuilder()
-        parts.part("urls", "magnet:?xt=urn:btih:0AF956F0DF28CA848BBBB2E29BB02A2D1F16BE31&dn=MasterChef+US+S13E01+1080p+WEB+h264-BAE&tr=http%3a%2f%2ftracker.opentrackr.org%3a1337%2fannounce&tr=udp%3a%2f%2ftracker.auctor.tv%3a6969%2fannounce&tr=udp%3a%2f%2fopentracker.i2p.rocks%3a6969%2fannounce&tr=https%3a%2f%2fopentracker.i2p.rocks%3a443%2fannounce&tr=udp%3a%2f%2fopen.demonii.com%3a1337%2fannounce&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a6969%2fannounce&tr=http%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce&tr=udp%3a%2f%2fopen.stealth.si%3a80%2fannounce&tr=udp%3a%2f%2ftracker.torrent.eu.org%3a451%2fannounce&tr=udp%3a%2f%2ftracker.moeking.me%3a6969%2fannounce&tr=udp%3a%2f%2fexplodie.org%3a6969%2fannounce&tr=udp%3a%2f%2fexodus.desync.com%3a6969%2fannounce&tr=udp%3a%2f%2fuploads.gamecoast.net%3a6969%2fannounce&tr=udp%3a%2f%2ftracker1.bt.moack.co.kr%3a80%2fannounce&tr=udp%3a%2f%2ftracker.tiny-vps.com%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.theoks.net%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.skyts.net%3a6969%2fannounce&tr=udp%3a%2f%2ftracker-udp.gbitt.info%3a80%2fannounce&tr=udp%3a%2f%2fopen.tracker.ink%3a6969%2fannounce&tr=udp%3a%2f%2fmovies.zsw.ca%3a6969%2fannounce")
+        parts.part("urls", "magnet")
         parts.part("category", "test")
         parts.part("paused", "false")
 
-        //stubbingService.mockIsCached()
-        //stubbingService.mockCachedContents()
+        stubbingService.mockIsCached()
+        stubbingService.mockCachedContents()
 
         //when
         webTestClient

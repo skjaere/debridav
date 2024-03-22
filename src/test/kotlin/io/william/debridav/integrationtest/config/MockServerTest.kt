@@ -1,4 +1,4 @@
-package io.william.debridav.integrationtest
+package io.william.debridav.integrationtest.config
 
 import org.springframework.test.context.ContextConfiguration
 

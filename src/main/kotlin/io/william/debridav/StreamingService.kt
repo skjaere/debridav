@@ -12,7 +12,7 @@ import java.net.URL
 
 @Service
 class StreamingService(
-        @Value("\${debridav.debridclient") val debridProvider: DebridProvider
+        @Value("\${debridav.debridclient}") val debridProvider: DebridProvider
 ) {
     private val logger = LoggerFactory.getLogger(StreamingService::class.java)
 
@@ -45,6 +45,7 @@ class StreamingService(
         } catch (e: Exception) {
             out.close()
             connection.inputStream.close()
+            connection.disconnect()
             logger.error("error!", e)
             return Result.ERROR
         }
@@ -61,6 +62,7 @@ class StreamingService(
         connection.inputStream.transferTo(out)
         connection.inputStream.close()
         out.close()
+        connection.disconnect()
     }
 
     fun openConnection(link: String): HttpURLConnection = URL(link).openConnection() as HttpURLConnection

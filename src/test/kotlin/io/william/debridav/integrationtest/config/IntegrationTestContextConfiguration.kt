@@ -1,4 +1,4 @@
-package io.william.debridav.integrationtest
+package io.william.debridav.integrationtest.config
 
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory
 import org.springframework.boot.web.servlet.server.ServletWebServerFactory

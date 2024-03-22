@@ -1,4 +1,4 @@
-package io.william.debridav.integrationtest
+package io.william.debridav.integrationtest.config
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.william.debridav.debrid.premiumize.DirectDownloadResponse

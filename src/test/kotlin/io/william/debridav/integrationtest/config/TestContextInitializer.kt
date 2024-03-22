@@ -1,4 +1,4 @@
-package io.william.debridav.integrationtest
+package io.william.debridav.integrationtest.config
 
 import org.apache.commons.io.FileUtils
 import org.mockserver.integration.ClientAndServer
@@ -12,6 +12,10 @@ import org.springframework.test.util.TestSocketUtils
 import java.io.File
 
 class TestContextInitializer : ApplicationContextInitializer<ConfigurableApplicationContext> {
+    companion object {
+        val BASE_PATH = "/tmp/debridavtests"
+    }
+
     override fun initialize(applicationContext: ConfigurableApplicationContext) {
         val port = TestSocketUtils.findAvailableTcpPort()
         val mockServer: ClientAndServer = startClientAndServer(port)
