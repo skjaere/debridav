@@ -26,6 +26,7 @@ class FileService(
         private val debridClient: DebridClient,
         @Value("\${debriDav.local.file.path}") val localPath: String,
         @Value("\${debridav.cache.local.debridfiles.threshold.mb}") val cacheLocalFilesMbThreshold: Int,
+        @Value("\${debridav.debridclient}") val debridProvider: DebridProvider,
         private val streamingService: StreamingService
 ) {
     private val logger = LoggerFactory.getLogger(FileService::class.java)
@@ -47,8 +48,13 @@ class FileService(
                 createRequest.path,
                 createRequest.size,
                 Instant.now().toEpochMilli(),
-                createRequest.link,
-                magnet
+                magnet,
+                mutableListOf(
+                        DebridLink(
+                                debridProvider,
+                                createRequest.link
+                        )
+                )
         )
         if (createRequest.size < cacheLocalFilesMbThreshold * 1024 * 1024) {
             createLocalFile(
@@ -174,11 +180,9 @@ class FileService(
             debridClient.getDirectDownloadLink(contents.magnet!!)
                     .firstOrNull { it.path == contents.originalPath }
                     ?.let {
-                        val newContents = DebridFileContents.ofDebridLink(it, contents.magnet)
+                        val newContents = DebridFileContents.ofDebridResponse(it, contents.magnet, debridProvider)
                         debridFile.writeText(
-                                objectMapper.writeValueAsString(
-                                        newContents
-                                )
+                                objectMapper.writeValueAsString(newContents)
                         )
                         return newContents
                     } ?: run { return null }
@@ -198,6 +202,22 @@ class FileService(
             debridFile.delete()
             return null
         }
+    }
+
+    fun addProviderDebridLinkToDebridFile(debridFile: File): DebridFileContents? {
+        val contents = objectMapper.readValue<DebridFileContents>(debridFile)
+        debridClient.getDirectDownloadLink(contents.magnet!!)
+                .firstOrNull { it.path == contents.originalPath }
+                ?.let {
+                    contents.debridLinks.add(
+                            it.toDebridLink(debridClient.getProvider())
+                    )
+                    debridFile.writeText(
+                            objectMapper.writeValueAsString(contents)
+                    )
+                    return contents
+                }
+        return null
     }
 
     data class CreateFileRequest(

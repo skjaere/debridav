@@ -1,7 +1,7 @@
 package io.william.debridav.qbittorrent
 
 import io.william.debridav.debrid.DebridClient
-import io.william.debridav.debrid.DebridLink
+import io.william.debridav.debrid.DebridResponse
 import io.william.debridav.fs.FileService
 import io.william.debridav.repository.CategoryRepository
 import io.william.debridav.repository.TorrentFileRepository
@@ -45,7 +45,7 @@ class TorrentService(
     }
 
     fun createFile(
-            content: DebridLink,
+            content: DebridResponse,
             magnet: String
     ) {
         val createRequest = FileService.CreateFileRequest(
@@ -56,7 +56,7 @@ class TorrentService(
         fileService.createDebridFile(createRequest, magnet, null)
     }
 
-    fun createTorrent(content: List<DebridLink>, categoryName: String) {
+    fun createTorrent(content: List<DebridResponse>, categoryName: String) {
         val torrent = Torrent()
         torrent.category = categoryRepository.findByName(categoryName)
                 ?: run { createCategory(categoryName) }

@@ -2,7 +2,8 @@ package io.william.debridav.debrid.premiumize
 
 import com.fasterxml.jackson.databind.JsonNode
 import io.william.debridav.debrid.DebridClient
-import io.william.debridav.debrid.DebridLink
+import io.william.debridav.debrid.DebridResponse
+import io.william.debridav.fs.DebridProvider
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
@@ -36,7 +37,7 @@ class PremiumizeClient(
         }
     }
 
-    override fun getDirectDownloadLink(magnet: String): List<DebridLink> {
+    override fun getDirectDownloadLink(magnet: String): List<DebridResponse> {
         return restClient.post()
                 .uri("$baseUrl/transfer/directdl?apikey=$apiKey&src=${magnet}")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
@@ -45,7 +46,7 @@ class PremiumizeClient(
                 .body(DirectDownloadResponse::class.java)
                 ?.content
                 ?.map {
-                    DebridLink(
+                    DebridResponse(
                             it.path,
                             it.size,
                             "video/mp4",
@@ -53,4 +54,6 @@ class PremiumizeClient(
                     )
                 } ?: emptyList()
     }
+
+    override fun getProvider(): DebridProvider = DebridProvider.PREMIUMIZE
 }

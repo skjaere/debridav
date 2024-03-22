@@ -1,5 +1,7 @@
-package io.william.debridav
+package io.william.debridav.integrationtest
 
+import io.william.debridav.DebridApplication
+import io.william.debridav.MiltonConfiguration
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -11,7 +13,7 @@ import org.springframework.web.reactive.function.BodyInserters
 import java.io.File
 
 @SpringBootTest(
-        classes = [DebridApplication::class, IntegrationTestContextConfiguration::class],
+        classes = [DebridApplication::class, IntegrationTestContextConfiguration::class, MiltonConfiguration::class],
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = ["debridav.debridclient=premiumize"]
 )

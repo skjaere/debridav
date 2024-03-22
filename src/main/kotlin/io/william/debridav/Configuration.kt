@@ -28,7 +28,7 @@ class FilterConfiguration {
                 "controllerPackagesToScan",
                 "io.william.debrid"
         )
-        registration.addInitParameter("contextConfigClass", "io.william.debrid.MiltonConfiguration")
+        registration.addInitParameter("contextConfigClass", "io.william.debridav.MiltonConfiguration")
 
         return registration
     }

@@ -57,12 +57,25 @@ class DebridFileResource(
             contentType: String?
     ) {
         val result = streamingService.streamDebridFile(debridFileContents, range, out)
-        if (result == StreamingService.Result.DEAD_LINK) {
-            fileService.handleDeadLink(file)?.let {
-                streamingService.streamDebridFile(it, range, out)
-            } ?: run {
-                out.close()
+        when (result) {
+            StreamingService.Result.DEAD_LINK -> {
+                fileService.handleDeadLink(file)?.let {
+                    streamingService.streamDebridFile(it, range, out)
+                } ?: run {
+                    out.close()
+                }
             }
+
+            StreamingService.Result.PROVIDER_MISSING -> {
+                fileService.addProviderDebridLinkToDebridFile(file)?.let {
+                    streamingService.streamDebridFile(it, range, out)
+                } ?: run {
+                    out.close()
+                }
+            }
+
+            StreamingService.Result.ERROR -> {}
+            StreamingService.Result.OK -> {}
         }
     }
 

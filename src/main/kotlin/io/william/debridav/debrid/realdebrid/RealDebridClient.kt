@@ -3,7 +3,8 @@ package io.william.debridav.debrid.realdebrid
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.william.debridav.debrid.DebridClient
-import io.william.debridav.debrid.DebridLink
+import io.william.debridav.debrid.DebridResponse
+import io.william.debridav.fs.DebridProvider
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
@@ -44,14 +45,14 @@ class RealDebridClient(
         }
     }
 
-    override fun getDirectDownloadLink(magnet: String): List<DebridLink> {
+    override fun getDirectDownloadLink(magnet: String): List<DebridResponse> {
         return addMagnet(magnet)?.let { addMagnetResponse ->
             selectFilesFromTorrent(addMagnetResponse.id)
             getTorrentInfo(addMagnetResponse.id).let { hostedFiles ->
                 hostedFiles
                         .mapNotNull { unrestrictLink(it.link) }
                         .map { unrestrictedLink ->
-                            DebridLink(
+                            DebridResponse(
                                     unrestrictedLink.filename,
                                     unrestrictedLink.filesize,
                                     unrestrictedLink.mimeType,
@@ -61,6 +62,8 @@ class RealDebridClient(
             }
         } ?: emptyList()
     }
+
+    override fun getProvider(): DebridProvider = DebridProvider.REAL_DEBRID
 
     data class AddMagnetResponse(
             val id: String,

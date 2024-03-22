@@ -2,14 +2,18 @@ package io.william.debridav
 
 import io.milton.http.Range
 import io.william.debridav.fs.DebridFileContents
+import io.william.debridav.fs.DebridProvider
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
 @Service
-class StreamingService {
+class StreamingService(
+        @Value("\${debridav.debridclient") val debridProvider: DebridProvider
+) {
     private val logger = LoggerFactory.getLogger(StreamingService::class.java)
 
     fun streamDebridFile(
@@ -17,7 +21,12 @@ class StreamingService {
             range: Range?,
             out: OutputStream
     ): Result {
-        val connection = URL(debridFileContents.link).openConnection() as HttpURLConnection
+        val providerLink = debridFileContents.getProviderLink(debridProvider)
+        val connection = providerLink
+                ?.link?.let {
+                    openConnection(it)
+                } ?: run { return Result.PROVIDER_MISSING }
+
         range?.let {
             val start = range.start ?: 0
             val finish = range.finish ?: debridFileContents.size
@@ -30,9 +39,9 @@ class StreamingService {
         }
 
         try {
-            logger.info("Begin streaming of ${debridFileContents.link}")
+            logger.info("Begin streaming of $providerLink")
             streamContents(connection, out)
-            logger.info("Streaming of ${debridFileContents.link} complete")
+            logger.info("Streaming of $providerLink complete")
         } catch (e: Exception) {
             out.close()
             connection.inputStream.close()
@@ -54,7 +63,9 @@ class StreamingService {
         out.close()
     }
 
+    fun openConnection(link: String): HttpURLConnection = URL(link).openConnection() as HttpURLConnection
+
     enum class Result {
-        DEAD_LINK, ERROR, OK
+        DEAD_LINK, ERROR, OK, PROVIDER_MISSING
     }
 }

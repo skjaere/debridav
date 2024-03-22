@@ -1,5 +1,7 @@
-package io.william.debridav
+package io.william.debridav.integrationtest
 
+import io.william.debridav.DebridApplication
+import io.william.debridav.MiltonConfiguration
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -42,7 +44,8 @@ class RealDebridClientIT {
         //stubbingService.mockCachedContents()
 
         //when
-        webTestClient.mutate().responseTimeout(Duration.ofHours(1)).build()
+        webTestClient
+                .mutate().responseTimeout(Duration.ofHours(1)).build()
                 .post()
                 .uri("/api/v2/torrents/add")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
