@@ -208,7 +208,7 @@ class FileService(
     fun addProviderDebridLinkToDebridFile(debridFile: File): DebridFileContents? {
         val contents = objectMapper.readValue<DebridFileContents>(debridFile)
         debridClient.getDirectDownloadLink(contents.magnet!!)
-                .firstOrNull { it.path == contents.originalPath }
+                .firstOrNull { it.path.fileName() == contents.originalPath.fileName() }
                 ?.let {
                     contents.debridLinks.add(
                             it.toDebridLink(debridClient.getProvider())
@@ -220,6 +220,8 @@ class FileService(
                 }
         return null
     }
+
+    private fun String.fileName() = this.split("/").last()
 
     data class CreateFileRequest(
             val path: String,

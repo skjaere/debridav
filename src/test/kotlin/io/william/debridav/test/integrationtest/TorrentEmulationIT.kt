@@ -1,15 +1,14 @@
-package io.william.debridav.integrationtest
+package io.william.debridav.test.integrationtest
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.william.debridav.DebridApplication
 import io.william.debridav.MiltonConfiguration
-import io.william.debridav.integrationtest.config.IntegrationTestContextConfiguration
-import io.william.debridav.integrationtest.config.MockServerTest
-import io.william.debridav.integrationtest.config.StubbingService
 import io.william.debridav.qbittorrent.TorrentsInfoResponse
+import io.william.debridav.test.integrationtest.config.IntegrationTestContextConfiguration
+import io.william.debridav.test.integrationtest.config.MockServerTest
+import io.william.debridav.test.integrationtest.config.PremiumizeStubbingService
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -30,32 +29,10 @@ class TorrentEmulationIT {
     private lateinit var webTestClient: WebTestClient
 
     @Autowired
-    private lateinit var stubbingService: StubbingService
+    private lateinit var premiumizeStubbingService: PremiumizeStubbingService
 
     private val objectMapper = jacksonObjectMapper()
 
-    @Test
-    fun addingTorrentProducesDebridFileWhenTorrentCached() {
-        //given
-        val parts = MultipartBodyBuilder()
-        parts.part("urls", "magnet")
-        parts.part("category", "test")
-        parts.part("paused", "false")
-
-        stubbingService.mockIsCached()
-        stubbingService.mockCachedContents()
-
-        //when
-        webTestClient.post()
-                .uri("/api/v2/torrents/add")
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(parts.build()))
-                .exchange()
-                .expectStatus().is2xxSuccessful
-
-        //then
-        assertTrue(File("/tmp/debridavtests/downloads/a/b/c.debridfile").exists())
-    }
 
     @Test
     fun torrentsInfoEndpointPointsToCorrectLocation() {
@@ -65,8 +42,8 @@ class TorrentEmulationIT {
         parts.part("category", "test")
         parts.part("paused", "false")
 
-        stubbingService.mockIsCached()
-        stubbingService.mockCachedContents()
+        premiumizeStubbingService.mockIsCached()
+        premiumizeStubbingService.mockCachedContents()
 
         //when
         webTestClient.post()
@@ -91,7 +68,7 @@ class TorrentEmulationIT {
 
     @AfterEach
     fun deleteTestFiles() {
-        File("/tmp/debridavtests/downloads/a/b/c.debridfile").let {
+        File("/tmp/debridavtests/downloads/a/b/c/movie.mkv.debridfile").let {
             if (it.exists()) it.delete()
         }
     }

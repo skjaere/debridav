@@ -1,7 +1,8 @@
-package io.william.debridav
+package io.william.debridav.test
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import io.william.debridav.StreamingService
 import io.william.debridav.debrid.premiumize.PremiumizeClient
 import io.william.debridav.debrid.realdebrid.RealDebridClient
 import io.william.debridav.fs.DebridFileContents

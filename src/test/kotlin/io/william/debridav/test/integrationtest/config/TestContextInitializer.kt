@@ -1,4 +1,4 @@
-package io.william.debridav.integrationtest.config
+package io.william.debridav.test.integrationtest.config
 
 import org.apache.commons.io.FileUtils
 import org.mockserver.integration.ClientAndServer

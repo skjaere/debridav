@@ -1,4 +1,4 @@
-package io.william.debridav
+package io.william.debridav.test
 
 import io.william.debridav.debrid.realdebrid.MagnetParser
 import org.junit.jupiter.api.Assertions.assertEquals

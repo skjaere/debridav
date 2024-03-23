@@ -1,15 +1,15 @@
-package io.william.debridav.integrationtest
+package io.william.debridav.test.integrationtest
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.william.debridav.DebridApplication
 import io.william.debridav.MiltonConfiguration
-import io.william.debridav.debridFileContents
 import io.william.debridav.fs.DebridLink
 import io.william.debridav.fs.DebridProvider
-import io.william.debridav.integrationtest.config.IntegrationTestContextConfiguration
-import io.william.debridav.integrationtest.config.MockServerTest
-import io.william.debridav.integrationtest.config.StubbingService
-import io.william.debridav.integrationtest.config.TestContextInitializer.Companion.BASE_PATH
+import io.william.debridav.test.debridFileContents
+import io.william.debridav.test.integrationtest.config.ContentStubbingService
+import io.william.debridav.test.integrationtest.config.IntegrationTestContextConfiguration
+import io.william.debridav.test.integrationtest.config.MockServerTest
+import io.william.debridav.test.integrationtest.config.TestContextInitializer.Companion.BASE_PATH
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -27,16 +27,16 @@ class ContentIT {
     private lateinit var webTestClient: WebTestClient
 
     @Autowired
-    private lateinit var stubbingService: StubbingService
+    private lateinit var contentStubbingService: ContentStubbingService
 
     @Test
     fun contentIsServed() {
-        stubbingService.mockWorkingStream()
+        contentStubbingService.mockWorkingStream()
 
         val file = File("$BASE_PATH/testfile.mp4.debridfile")
         val fileContents = debridFileContents.copy()
         fileContents.debridLinks = mutableListOf(
-                DebridLink(DebridProvider.PREMIUMIZE, "http://localhost:${stubbingService.port}/workingLink")
+                DebridLink(DebridProvider.PREMIUMIZE, "http://localhost:${contentStubbingService.port}/workingLink")
         )
         fileContents.size = "it works!".toByteArray().size.toLong()
         file.writeText(jacksonObjectMapper().writeValueAsString(fileContents))

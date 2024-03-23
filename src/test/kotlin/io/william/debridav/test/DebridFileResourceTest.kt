@@ -1,7 +1,8 @@
-package io.william.debridav
+package io.william.debridav.test
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.milton.http.Range
+import io.william.debridav.StreamingService
 import io.william.debridav.fs.FileService
 import io.william.debridav.resource.DebridFileResource
 import org.junit.jupiter.api.Test

@@ -1,4 +1,4 @@
-package io.william.debridav.integrationtest.config
+package io.william.debridav.test.integrationtest.config
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.william.debridav.debrid.premiumize.DirectDownloadResponse
@@ -10,7 +10,7 @@ import org.mockserver.model.MediaType
 import org.mockserver.model.Parameter
 import org.springframework.beans.factory.annotation.Value
 
-class StubbingService(
+class PremiumizeStubbingService(
         @Value("\${mockserver.port}") val port: Int
 ) {
     private val objectMapper = jacksonObjectMapper()
@@ -49,36 +49,6 @@ class StubbingService(
         )
     }
 
-    fun mockDeadLink() {
-        MockServerClient(
-                "localhost", port
-        ).`when`(
-                HttpRequest.request()
-                        .withMethod("GET")
-                        .withPath(
-                                "deadLink"
-                        ), Times.exactly(1)
-        ).respond(
-                HttpResponse.response()
-                        .withStatusCode(404)
-        )
-    }
-
-    fun mockWorkingStream() {
-        MockServerClient(
-                "localhost", port
-        ).`when`(
-                HttpRequest.request()
-                        .withMethod("GET")
-                        .withPath(
-                                "/workingLink"
-                        ), Times.exactly(2)
-        ).respond(
-                HttpResponse.response()
-                        .withStatusCode(200)
-                        .withBody("it works!")
-        )
-    }
 
     fun mockCachedContents() {
         val response = DirectDownloadResponse(
@@ -88,7 +58,7 @@ class StubbingService(
                 100,
                 listOf(
                         DirectDownloadResponse.Content(
-                                "a/b/c",
+                                "a/b/c/movie.mkv",
                                 100000000,
                                 "http://localhost:$port/workingLink",
                                 null,

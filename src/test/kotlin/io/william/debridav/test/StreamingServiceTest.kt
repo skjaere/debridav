@@ -1,6 +1,7 @@
-package io.william.debridav
+package io.william.debridav.test
 
 import io.milton.http.Range
+import io.william.debridav.StreamingService
 import io.william.debridav.fs.DebridFileContents
 import io.william.debridav.fs.DebridLink
 import io.william.debridav.fs.DebridProvider
