@@ -2,6 +2,7 @@ services:
   debridav:
     image: korvusz.io/debrid:latest
     container_name: debridav
+    restart: unless-stopped
     environment:
       - PUID=1000
       - PGID=1000
@@ -9,7 +10,7 @@ services:
       - H2_FILE_PATH=/debridav/h2data
       - DEBRIDAV_LOCAL_FILE_PATH=/debridav
       - DEBRIDAV_QBITTORRENT_DOWNLOADDIR=/data/downloads
-      - DEBRID_CLIENT=realdebrid
+      - debridav.debridclient=realdebrid
     ports:
       - 8888:8080
     networks:
@@ -41,6 +42,7 @@ services:
   jellyfin-debrid:
     image: lscr.io/linuxserver/jellyfin:latest
     container_name: jellyfin-debrid
+    restart: unless-stopped
     environment:
       - PUID=1000
       - PGID=1000

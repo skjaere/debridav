@@ -142,7 +142,7 @@ class FileService(
             throw RuntimeException("Provided file is a directory")
         }
         return if (this.name.endsWith(".debridfile")) {
-            DebridFileResource(this, this@FileService, streamingService)
+            DebridFileResource(this, this@FileService, streamingService, debridProvider)
         } else {
             if (this.exists())
                 return FileResource(this, this@FileService)
@@ -181,11 +181,13 @@ class FileService(
             debridClient.getDirectDownloadLink(contents.magnet!!)
                     .firstOrNull { it.path == contents.originalPath }
                     ?.let {
-                        val newContents = DebridFileContents.ofDebridResponse(it, contents.magnet, debridProvider)
+                        contents.debridLinks
+                                .first { link -> link.provider == debridProvider }
+                                .link = it.link
                         debridFile.writeText(
-                                objectMapper.writeValueAsString(newContents)
+                                objectMapper.writeValueAsString(contents)
                         )
-                        return newContents
+                        return contents
                     } ?: run { return null }
         }
         return null

@@ -11,7 +11,7 @@
     - [x] Write docker compose
 - [x] Fix path queries
 
-- [ ] Tests
+- [x] Tests
 - [x] Use H2
 - [x] Dont use DB for files
 - [x] Download small files
@@ -19,4 +19,5 @@
 - [x] Implement delete torrent endpoint
 - [ ] Implement SabNzbd controller
 - [x] Refresh dead links
-- [ ] Context initializer for tests
+- [x] Context initializer for tests
+- [ ] Find out why sonarr import stalls
