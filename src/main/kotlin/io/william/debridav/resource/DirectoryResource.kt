@@ -3,7 +3,9 @@ package io.william.debridav.resource
 import io.milton.http.Auth
 import io.milton.http.Request
 import io.milton.resource.*
+import io.william.debridav.LOOM
 import io.william.debridav.fs.FileService
+import kotlinx.coroutines.*
 import java.io.File
 import java.io.InputStream
 import java.time.Instant
@@ -17,10 +19,16 @@ class DirectoryResource(
     private var children: List<Resource>? = null
 
     init {
-        children = directory.listFiles()
-                ?.toList()
-                ?.mapNotNull { fileService.toResource(it) }
-                ?: emptyList()
+        runBlocking {
+            withContext(Dispatchers.LOOM) {
+                children = directory.listFiles()
+                        ?.toList()
+                        ?.map { async { fileService.toResource(it) } }
+                        ?.awaitAll()
+                        ?.filterNotNull()
+                        ?: emptyList()
+            }
+        }
     }
 
     override fun getUniqueId(): String {

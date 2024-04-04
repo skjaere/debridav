@@ -62,21 +62,18 @@ class DebridFileResource(
             params: MutableMap<String, String>?,
             contentType: String?
     ) {
-        debridFileContents.getProviderLink(debridProvider)?.let { debridLink ->
-            val result = streamingService.streamDebridLink(debridLink, range, debridFileContents.size, out)
-            when (result) {
-                StreamingService.Result.DEAD_LINK -> handleDeadLink(range, debridFileContents.size, out)
-                StreamingService.Result.ERROR -> {
-                    file.delete()
+        out.use { outputStream ->
+            debridFileContents.getProviderLink(debridProvider)?.let { debridLink ->
+                val result = streamingService.streamDebridLink(debridLink, range, debridFileContents.size, outputStream)
+                when (result) {
+                    StreamingService.Result.DEAD_LINK -> handleDeadLink(range, debridFileContents.size, outputStream)
+                    StreamingService.Result.ERROR -> handleDeadLink(range, debridFileContents.size, outputStream)
+                    StreamingService.Result.OK -> {}
                 }
-
-                StreamingService.Result.OK -> {}
-            }
-        } ?: run {
-            fileService.addProviderDebridLinkToDebridFile(file)?.let { refreshedContents ->
-                streamingService.streamDebridLink(refreshedContents.getProviderLink(debridProvider)!!, range, debridFileContents.size, out)
             } ?: run {
-                out.close()
+                fileService.addProviderDebridLinkToDebridFile(file)?.let { refreshedContents ->
+                    streamingService.streamDebridLink(refreshedContents.getProviderLink(debridProvider)!!, range, debridFileContents.size, outputStream)
+                }
             }
         }
     }
@@ -86,8 +83,6 @@ class DebridFileResource(
             if (streamingService.streamDebridLink(it.getProviderLink(debridProvider)!!, range, fileSize, out) != StreamingService.Result.OK) {
                 logger.info("failed to refresh file ${debridFileContents.getProviderLink(debridProvider)}")
             }
-        } ?: run {
-            out.close()
         }
     }
 

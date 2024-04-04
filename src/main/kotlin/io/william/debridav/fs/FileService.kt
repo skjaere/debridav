@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.File
 import java.io.InputStream
-import java.net.URL
+import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Instant
@@ -60,7 +60,7 @@ class FileService(
         if (createRequest.size < cacheLocalFilesMbThreshold * 1024 * 1024) {
             createLocalFile(
                     createRequest.path,
-                    URL(createRequest.link).openConnection().getInputStream()
+                    URI(createRequest.link).toURL().openConnection().getInputStream()
             )
         } else {
             createDebridFile(
