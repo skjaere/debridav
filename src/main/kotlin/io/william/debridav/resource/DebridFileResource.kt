@@ -1,7 +1,5 @@
 package io.william.debridav.resource
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.milton.http.Auth
 import io.milton.http.Range
 import io.milton.http.Request
@@ -26,7 +24,7 @@ class DebridFileResource(
         @Value("\${debridav.debridclient}") val debridProvider: DebridProvider
 ) : AbstractResource(fileService), GetableResource, DeletableResource {
     private val logger = LoggerFactory.getLogger(DebridClient::class.java)
-    private val debridFileContents: DebridFileContents = jacksonObjectMapper().readValue(file)
+    private val debridFileContents: DebridFileContents = fileService.getDebridFileContents(file)
 
     override fun getUniqueId(): String {
         return file.name

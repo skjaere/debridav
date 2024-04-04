@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import io.milton.resource.Resource
 import io.william.debridav.StreamingService
 import io.william.debridav.debrid.DebridClient
+import io.william.debridav.refresherExecutor
 import io.william.debridav.resource.DebridFileResource
 import io.william.debridav.resource.DirectoryResource
 import io.william.debridav.resource.FileResource
@@ -28,7 +29,8 @@ class FileService(
         @Value("\${debriDav.local.download.path}") val downloadPath: String,
         @Value("\${debridav.cache.local.debridfiles.threshold.mb}") val cacheLocalFilesMbThreshold: Int,
         @Value("\${debridav.debridclient}") val debridProvider: DebridProvider,
-        private val streamingService: StreamingService
+        private val streamingService: StreamingService,
+        private val fileContentsService: FileContentsService
 ) {
     private val logger = LoggerFactory.getLogger(FileService::class.java)
     private val objectMapper = jacksonObjectMapper()
@@ -187,6 +189,7 @@ class FileService(
                         debridFile.writeText(
                                 objectMapper.writeValueAsString(contents)
                         )
+                        refresherExecutor.submit { fileContentsService.refreshContentsOnPath(debridFile.path, contents) }
                         return contents
                     } ?: run { return null }
         }
@@ -202,6 +205,7 @@ class FileService(
             return it
         } ?: run {
             logger.info("Unable to find fresh link for ${debridFile.path}. Deleting file")
+            refresherExecutor.submit { fileContentsService.deleteContents(debridFile.path) }
             debridFile.delete()
             return null
         }
@@ -218,10 +222,13 @@ class FileService(
                     debridFile.writeText(
                             objectMapper.writeValueAsString(contents)
                     )
+                    refresherExecutor.submit { fileContentsService.refreshContentsOnPath(debridFile.path, contents) }
                     return contents
                 }
         return null
     }
+
+    fun getDebridFileContents(file: File): DebridFileContents = fileContentsService.getContentsOnPath(file.path)
 
     private fun String.fileName() = this.split("/").last()
 

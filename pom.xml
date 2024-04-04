@@ -20,7 +20,6 @@
         <docker.image.prefix>korvusz.io</docker.image.prefix>
     </properties>
 
-
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -84,6 +83,12 @@
             <version>1.8.0</version>
             <type>pom</type>
         </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.1.0-jre</version>
+        </dependency>
+
     </dependencies>
 
     <build>

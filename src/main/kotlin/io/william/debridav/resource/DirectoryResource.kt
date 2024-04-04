@@ -1,9 +1,9 @@
 package io.william.debridav.resource
 
+import LOOM
 import io.milton.http.Auth
 import io.milton.http.Request
 import io.milton.resource.*
-import io.william.debridav.LOOM
 import io.william.debridav.fs.FileService
 import kotlinx.coroutines.*
 import java.io.File
@@ -20,7 +20,7 @@ class DirectoryResource(
 
     init {
         runBlocking {
-            withContext(Dispatchers.LOOM) {
+            withContext(LOOM) {
                 children = directory.listFiles()
                         ?.toList()
                         ?.map { async { fileService.toResource(it) } }
