@@ -5,11 +5,13 @@ import io.william.debridav.fs.DebridFileContents
 import io.william.debridav.fs.DebridLink
 import io.william.debridav.fs.DebridProvider
 
+val magnet = "magnet:?xt=urn:btih:hash&dn=test&tr="
+
 val debridFileContents = DebridFileContents(
         "a/b/c/movie.mkv",
         100,
         1000,
-        "magnet",
+        magnet,
         mutableListOf(
                 DebridLink(
                         DebridProvider.PREMIUMIZE,

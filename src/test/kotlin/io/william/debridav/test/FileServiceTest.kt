@@ -5,10 +5,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import io.william.debridav.StreamingService
 import io.william.debridav.debrid.premiumize.PremiumizeClient
 import io.william.debridav.debrid.realdebrid.RealDebridClient
-import io.william.debridav.fs.DebridFileContents
-import io.william.debridav.fs.DebridLink
-import io.william.debridav.fs.DebridProvider
-import io.william.debridav.fs.FileService
+import io.william.debridav.fs.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
@@ -25,34 +22,36 @@ class FileServiceTest {
         //given
         val premiumizeClient = mock(PremiumizeClient::class.java)
         val streamingService = mock(StreamingService::class.java)
+        val fileContentsService = mock(FileContentsService::class.java)
         val debridFile = File.createTempFile("/tmp", ".debridfile")
 
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
         val fileService = FileService(
-                premiumizeClient,
-                "/tmp/debridtest/files",
-                "/downloads",
-                2,
-                DebridProvider.PREMIUMIZE,
-                streamingService
+            premiumizeClient,
+            "/tmp/debridtest/files",
+            "/downloads",
+            2,
+            DebridProvider.PREMIUMIZE,
+            streamingService,
+            fileContentsService
         )
 
-        given(premiumizeClient.isCached("magnet"))
-                .willReturn(true)
-        given(premiumizeClient.getDirectDownloadLink("magnet"))
-                .willReturn(directDownloadResponse)
+        given(premiumizeClient.isCached(magnet))
+            .willReturn(true)
+        given(premiumizeClient.getDirectDownloadLink(magnet))
+            .willReturn(directDownloadResponse)
 
         //when
         val result = fileService.handleDeadLink(debridFile)
 
         //then
         assertEquals(
-                directDownloadResponse.first().link,
-                result?.debridLinks?.first()?.link
+            directDownloadResponse.first().link,
+            result?.debridLinks?.first()?.link
         )
         assertEquals(
-                directDownloadResponse.first().link,
-                jacksonObjectMapper().readValue<DebridFileContents>(debridFile.readText()).debridLinks.first().link
+            directDownloadResponse.first().link,
+            jacksonObjectMapper().readValue<DebridFileContents>(debridFile.readText()).debridLinks.first().link
         )
     }
 
@@ -63,34 +62,36 @@ class FileServiceTest {
         val streamingService = mock(StreamingService::class.java)
         val debridFile = File.createTempFile("/tmp", ".debridfile")
         val contents = debridFileContents.copy()
+        val fileContentsService = mock(FileContentsService::class.java)
         contents.debridLinks.add(DebridLink(DebridProvider.REAL_DEBRID, "http://localhost/deadLink"))
 
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
         val fileService = FileService(
-                premiumizeClient,
-                "/tmp/debridtest/files",
-                "/downloads",
-                2,
-                DebridProvider.PREMIUMIZE,
-                streamingService
+            premiumizeClient,
+            "/tmp/debridtest/files",
+            "/downloads",
+            2,
+            DebridProvider.PREMIUMIZE,
+            streamingService,
+            fileContentsService
         )
 
-        given(premiumizeClient.isCached("magnet"))
-                .willReturn(true)
-        given(premiumizeClient.getDirectDownloadLink("magnet"))
-                .willReturn(directDownloadResponse)
+        given(premiumizeClient.isCached(magnet))
+            .willReturn(true)
+        given(premiumizeClient.getDirectDownloadLink(magnet))
+            .willReturn(directDownloadResponse)
 
         //when
         val result = fileService.handleDeadLink(debridFile)
 
         //then
         assertEquals(
-                directDownloadResponse.first().link,
-                result?.debridLinks?.first()?.link
+            directDownloadResponse.first().link,
+            result?.debridLinks?.first()?.link
         )
         assertEquals(
-                directDownloadResponse.first().link,
-                jacksonObjectMapper().readValue<DebridFileContents>(debridFile.readText()).debridLinks.first().link
+            directDownloadResponse.first().link,
+            jacksonObjectMapper().readValue<DebridFileContents>(debridFile.readText()).debridLinks.first().link
         )
     }
 
@@ -100,18 +101,20 @@ class FileServiceTest {
         val premiumizeClient = mock(PremiumizeClient::class.java)
         val streamingService = mock(StreamingService::class.java)
         val debridFile = File.createTempFile("/tmp", ".debridfile")
+        val fileContentsService = mock(FileContentsService::class.java)
 
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
         val fileService = FileService(
-                premiumizeClient,
-                "/tmp/debridtest/files",
-                "/downloads",
-                2,
-                DebridProvider.PREMIUMIZE,
-                streamingService
+            premiumizeClient,
+            "/tmp/debridtest/files",
+            "/downloads",
+            2,
+            DebridProvider.PREMIUMIZE,
+            streamingService,
+            fileContentsService
         )
-        given(premiumizeClient.isCached("magnet"))
-                .willReturn(false)
+        given(premiumizeClient.isCached(magnet))
+            .willReturn(false)
 
         //when
         val result = fileService.handleDeadLink(debridFile)
@@ -127,22 +130,24 @@ class FileServiceTest {
         val debridClient = mock(RealDebridClient::class.java)
         val streamingService = mock(StreamingService::class.java)
         val debridFile = File.createTempFile("/tmp", ".debridfile")
+        val fileContentsService = mock(FileContentsService::class.java)
 
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
         val fileService = FileService(
-                debridClient,
-                "/tmp/debridtest/files",
-                "/downloads",
-                2,
-                DebridProvider.PREMIUMIZE,
-                streamingService
+            debridClient,
+            "/tmp/debridtest/files",
+            "/downloads",
+            2,
+            DebridProvider.PREMIUMIZE,
+            streamingService,
+            fileContentsService
         )
         given(debridClient.getProvider())
-                .willReturn(DebridProvider.REAL_DEBRID)
-        given(debridClient.isCached("magnet"))
-                .willReturn(true)
-        given(debridClient.getDirectDownloadLink("magnet"))
-                .willReturn(directDownloadResponse)
+            .willReturn(DebridProvider.REAL_DEBRID)
+        given(debridClient.isCached(magnet))
+            .willReturn(true)
+        given(debridClient.getDirectDownloadLink(magnet))
+            .willReturn(directDownloadResponse)
 
         //when
         val result = fileService.addProviderDebridLinkToDebridFile(debridFile)
@@ -152,12 +157,12 @@ class FileServiceTest {
         expectedContents.debridLinks.add(directDownloadResponse.first().toDebridLink(DebridProvider.REAL_DEBRID))
 
         assertEquals(
-                expectedContents,
-                result
+            expectedContents,
+            result
         )
         assertEquals(
-                expectedContents,
-                jacksonObjectMapper().readValue<DebridFileContents>(debridFile.readText())
+            expectedContents,
+            jacksonObjectMapper().readValue<DebridFileContents>(debridFile.readText())
         )
     }
 }

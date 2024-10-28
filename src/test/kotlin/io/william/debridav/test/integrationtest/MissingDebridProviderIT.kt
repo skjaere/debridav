@@ -58,6 +58,10 @@ class MissingDebridProviderIT {
                 .expectBody(String::class.java)
                 .isEqualTo("it works!")
         val debridFileContents: DebridFileContents = objectMapper.readValue(file)
+        webTestClient.delete()
+            .uri("/testfile.mp4")
+            .exchange()
+            .expectStatus().is2xxSuccessful
 
         //then
         assertEquals(2, debridFileContents.debridLinks.size)
@@ -71,7 +75,7 @@ class MissingDebridProviderIT {
         premiumizeStubbingService.mockIsCached()
         premiumizeStubbingService.mockCachedContents()
 
-        val file = File("${TestContextInitializer.BASE_PATH}/testfile.mp4.debridfile")
+        var file = File("${TestContextInitializer.BASE_PATH}/testfile.mp4.debridfile")
         val fileContents = debridFileContents.copy()
         fileContents.debridLinks = mutableListOf(
                 DebridLink(DebridProvider.REAL_DEBRID, "http://localhost:${premiumizeStubbingService.port}/realDebridLink")
@@ -88,9 +92,15 @@ class MissingDebridProviderIT {
                 .expectStatus().is2xxSuccessful
                 .expectBody(String::class.java)
                 .isEqualTo("it works!")
+        file = File("${TestContextInitializer.BASE_PATH}/testfile.mp4.debridfile")
         val debridFileContents: DebridFileContents = objectMapper.readValue(file)
+        webTestClient.delete()
+            .uri("/testfile.mp4")
+            .exchange()
+            .expectStatus().is2xxSuccessful
 
         //then
+        //await().until { (objectMapper.readValue(File("${TestContextInitializer.BASE_PATH}/testfile.mp4.debridfile")) as DebridFileContents).debridLinks.size == 2}
         assertEquals(2, debridFileContents.debridLinks.size)
         assertEquals("http://localhost:${premiumizeStubbingService.port}/workingLink", debridFileContents.debridLinks.first { it.provider == DebridProvider.PREMIUMIZE }.link)
     }

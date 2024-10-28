@@ -31,6 +31,7 @@ class ContentIT {
 
     @Test
     fun contentIsServed() {
+        //given
         contentStubbingService.mockWorkingStream()
 
         val file = File("$BASE_PATH/testfile.mp4.debridfile")
@@ -41,6 +42,7 @@ class ContentIT {
         fileContents.size = "it works!".toByteArray().size.toLong()
         file.writeText(jacksonObjectMapper().writeValueAsString(fileContents))
 
+        //when / then
         webTestClient
                 .get()
                 .uri("/testfile.mp4")
@@ -48,6 +50,11 @@ class ContentIT {
                 .expectStatus().is2xxSuccessful
                 .expectBody(String::class.java)
                 .isEqualTo("it works!")
+
+        webTestClient.delete()
+            .uri("/testfile.mp4")
+            .exchange()
+            .expectStatus().is2xxSuccessful
 
     }
 }

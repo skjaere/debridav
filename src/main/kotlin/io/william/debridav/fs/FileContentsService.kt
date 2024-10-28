@@ -22,6 +22,8 @@ class FileContentsService {
 
     fun refreshContentsOnPath(path: String, contents: DebridFileContents) = cache.put(path, contents)
 
+    fun delete(path: String) = cache.invalidate(path)
+
 
     fun deleteContents(path: String) = cache.invalidate(path)
 }

@@ -23,8 +23,9 @@ class DebridFileResource(
         private val streamingService: StreamingService,
         @Value("\${debridav.debridclient}") val debridProvider: DebridProvider
 ) : AbstractResource(fileService), GetableResource, DeletableResource {
-    private val logger = LoggerFactory.getLogger(DebridClient::class.java)
     private val debridFileContents: DebridFileContents = fileService.getDebridFileContents(file)
+    private val logger = LoggerFactory.getLogger(DebridClient::class.java)
+
 
     override fun getUniqueId(): String {
         return file.name
@@ -51,7 +52,7 @@ class DebridFileResource(
     }
 
     override fun delete() {
-        file.delete()
+        fileService.deleteFile(file)
     }
 
     override fun sendContent(

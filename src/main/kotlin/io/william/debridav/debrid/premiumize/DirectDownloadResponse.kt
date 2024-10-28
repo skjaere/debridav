@@ -17,5 +17,6 @@ data class DirectDownloadResponse(
             val streamLink: String?,
             @JsonAlias("transcode_status")
             val transcodeStatus: String?
-    )
+    ) {
+    }
 }

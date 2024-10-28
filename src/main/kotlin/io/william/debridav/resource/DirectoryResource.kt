@@ -1,6 +1,5 @@
 package io.william.debridav.resource
 
-import LOOM
 import io.milton.http.Auth
 import io.milton.http.Request
 import io.milton.resource.*
@@ -12,22 +11,20 @@ import java.time.Instant
 import java.util.*
 
 class DirectoryResource(
-        val directory: File,
-        fileService: FileService
+    val directory: File,
+    fileService: FileService
 ) : AbstractResource(fileService), MakeCollectionableResource, MoveableResource, PutableResource, DeletableResource {
 
     private var children: List<Resource>? = null
 
     init {
         runBlocking {
-            withContext(LOOM) {
-                children = directory.listFiles()
-                        ?.toList()
-                        ?.map { async { fileService.toResource(it) } }
-                        ?.awaitAll()
-                        ?.filterNotNull()
-                        ?: emptyList()
-            }
+            children = directory.listFiles()
+                ?.toList()
+                ?.map { async { fileService.toResource(it) } }
+                ?.awaitAll()
+                ?.filterNotNull()
+                ?: emptyList()
         }
     }
 
@@ -81,8 +78,8 @@ class DirectoryResource(
 
     override fun createNew(newName: String, inputStream: InputStream, length: Long, contentType: String?): Resource {
         val createdFile = fileService.createLocalFile(
-                "${directory.path}/$newName",
-                inputStream,
+            "${directory.path}/$newName",
+            inputStream,
         )
         return FileResource(createdFile, fileService)
     }

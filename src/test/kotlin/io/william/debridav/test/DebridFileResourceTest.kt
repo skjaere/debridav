@@ -23,9 +23,10 @@ class DebridFileResourceTest {
 
         val fileService: FileService = mock()
         val streamingService: StreamingService = mock()
+        given(fileService.getDebridFileContents(debridFile)).willReturn(debridFileContents)
         val debridFileResource = DebridFileResource(debridFile, fileService, streamingService, DebridProvider.PREMIUMIZE)
         val outputStream = ByteArrayOutputStream()
-        given(fileService.handleDeadLink(debridFile)).willReturn(null)
+        given(fileService.handleDeadLink(any())).willReturn(null)
         val content = debridFileContents.debridLinks.first()
         given(streamingService.streamDebridLink(
                 eq(content),
@@ -49,6 +50,7 @@ class DebridFileResourceTest {
 
         val fileService: FileService = mock()
         val streamingService: StreamingService = mock()
+        given(fileService.getDebridFileContents(debridFile)).willReturn(debridFileContents)
         val debridFileResource = DebridFileResource(debridFile, fileService, streamingService, DebridProvider.REAL_DEBRID)
         val outputStream = ByteArrayOutputStream()
         given(fileService.addProviderDebridLinkToDebridFile(debridFile)).willReturn(null)

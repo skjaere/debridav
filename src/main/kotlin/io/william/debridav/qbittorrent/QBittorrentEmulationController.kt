@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*
 class QBittorrentEmulationController(
         private val torrentService: TorrentService,
         private val resourceLoader: ResourceLoader,
-        @Value("\${debridav.qbittorrent.downloaddir}") private val downloadDir: String
+        @Value("\${debridav.mountpath}") private val downloadDir: String
 ) {
     @GetMapping("/api/v2/app/webapiVersion")
     fun version(): String {

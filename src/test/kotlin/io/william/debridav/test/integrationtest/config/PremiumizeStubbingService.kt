@@ -2,6 +2,7 @@ package io.william.debridav.test.integrationtest.config
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.william.debridav.debrid.premiumize.DirectDownloadResponse
+import io.william.debridav.test.magnet
 import org.mockserver.client.MockServerClient
 import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
@@ -9,6 +10,8 @@ import org.mockserver.model.HttpResponse
 import org.mockserver.model.MediaType
 import org.mockserver.model.Parameter
 import org.springframework.beans.factory.annotation.Value
+import java.net.URLEncoder
+import java.nio.charset.Charset
 
 class PremiumizeStubbingService(
         @Value("\${mockserver.port}") val port: Int
@@ -62,7 +65,7 @@ class PremiumizeStubbingService(
                                 100000000,
                                 "http://localhost:$port/workingLink",
                                 null,
-                                "magnet"
+                                null
                         )
                 )
         )
@@ -74,7 +77,6 @@ class PremiumizeStubbingService(
                         .withPath(
                                 "/transfer/directdl"
                         )
-                        .withQueryStringParameters(Parameter("src", "magnet")), Times.exactly(1)
         ).respond(
                 HttpResponse.response()
                         .withStatusCode(200)

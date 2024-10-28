@@ -24,13 +24,13 @@ import javax.naming.ConfigurationException
 
 @Service
 class FileService(
-        private val debridClient: DebridClient,
-        @Value("\${debriDav.local.file.path}") val localPath: String,
-        @Value("\${debriDav.local.download.path}") val downloadPath: String,
-        @Value("\${debridav.cache.local.debridfiles.threshold.mb}") val cacheLocalFilesMbThreshold: Int,
-        @Value("\${debridav.debridclient}") val debridProvider: DebridProvider,
-        private val streamingService: StreamingService,
-        private val fileContentsService: FileContentsService
+    private val debridClient: DebridClient,
+    @Value("\${debriDav.local.file.path}") val localPath: String,
+    @Value("\${debriDav.local.download.path}") val downloadPath: String,
+    @Value("\${debridav.cache.local.debridfiles.threshold.mb}") val cacheLocalFilesMbThreshold: Int,
+    @Value("\${debridav.debridclient}") val debridProvider: DebridProvider,
+    private val streamingService: StreamingService,
+    private val fileContentsService: FileContentsService
 ) {
     private val logger = LoggerFactory.getLogger(FileService::class.java)
     private val objectMapper = jacksonObjectMapper()
@@ -43,45 +43,45 @@ class FileService(
     }
 
     fun createDebridFile(
-            createRequest: CreateFileRequest,
-            magnet: String?,
-            torrentFile: ByteArray?
+        createRequest: CreateFileRequest,
+        magnet: String?,
+        torrentFile: ByteArray?
     ) {
         val debridFileContents = DebridFileContents(
-                createRequest.path,
-                createRequest.size,
-                Instant.now().toEpochMilli(),
-                magnet,
-                mutableListOf(
-                        DebridLink(
-                                debridProvider,
-                                createRequest.link
-                        )
+            createRequest.path,
+            createRequest.size,
+            Instant.now().toEpochMilli(),
+            magnet,
+            mutableListOf(
+                DebridLink(
+                    debridProvider,
+                    createRequest.link
                 )
+            )
         )
         if (createRequest.size < cacheLocalFilesMbThreshold * 1024 * 1024) {
             createLocalFile(
-                    createRequest.path,
-                    URI(createRequest.link).toURL().openConnection().getInputStream()
+                createRequest.path,
+                URI(createRequest.link).toURL().openConnection().getInputStream()
             )
         } else {
             createDebridFile(
-                    createRequest.path,
-                    objectMapper.writeValueAsString(debridFileContents).byteInputStream()
+                createRequest.path,
+                objectMapper.writeValueAsString(debridFileContents).byteInputStream()
             )
         }
     }
 
     fun createDebridFile(
-            path: String,
-            inputStream: InputStream
+        path: String,
+        inputStream: InputStream
     ): File {
         return createLocalFile("$localPath$downloadPath/$path.debridfile", inputStream)
     }
 
     fun createLocalFile(
-            directory: String,
-            inputStream: InputStream
+        directory: String,
+        inputStream: InputStream
     ): File {
         val file = File(directory)
         return writeFile(file, inputStream)
@@ -107,10 +107,15 @@ class FileService(
             destination.parentFile.mkdirs()
         }
         Files.move(
-                src.toPath(),
-                destination.toPath(),
-                StandardCopyOption.REPLACE_EXISTING
+            src.toPath(),
+            destination.toPath(),
+            StandardCopyOption.REPLACE_EXISTING
         )
+    }
+
+    fun deleteFile(file: File) {
+        fileContentsService.deleteContents(file.path)
+        file.delete()
     }
 
     fun createDirectory(path: String): DirectoryResource {
@@ -125,10 +130,10 @@ class FileService(
 
     fun getResourceAtPath(path: String): Resource? {
         return getFileAtPath(path)
-                ?.let {
-                    if (it.isDirectory) it.toDirectoryResource()
-                    else it.toFileResource()
-                } ?: run {
+            ?.let {
+                if (it.isDirectory) it.toDirectoryResource()
+                else it.toFileResource()
+            } ?: run {
             getFileAtPath("$path.debridfile")?.toFileResource()
         }
     }
@@ -181,23 +186,23 @@ class FileService(
         val isCached = debridClient.isCached(contents.magnet!!)
         if (isCached) {
             debridClient.getDirectDownloadLink(contents.magnet!!)
-                    .firstOrNull { it.path == contents.originalPath }
-                    ?.let {
-                        contents.debridLinks
-                                .first { link -> link.provider == debridProvider }
-                                .link = it.link
-                        debridFile.writeText(
-                                objectMapper.writeValueAsString(contents)
-                        )
-                        refresherExecutor.submit { fileContentsService.refreshContentsOnPath(debridFile.path, contents) }
-                        return contents
-                    } ?: run { return null }
+                .firstOrNull { it.path == contents.originalPath }
+                ?.let {
+                    contents.debridLinks
+                        .first { link -> link.provider == debridProvider }
+                        .link = it.link
+                    debridFile.writeText(
+                        objectMapper.writeValueAsString(contents)
+                    )
+                    refresherExecutor.submit { fileContentsService.refreshContentsOnPath(debridFile.path, contents) }
+                    return contents
+                } ?: run { return null }
         }
         return null
     }
 
     fun handleDeadLink(
-            debridFile: File,
+        debridFile: File,
     ): DebridFileContents? {
         logger.info("Found stale link for ${debridFile.path}. Attempting refresh.")
         refreshDebridFile(debridFile)?.let {
@@ -205,7 +210,7 @@ class FileService(
             return it
         } ?: run {
             logger.info("Unable to find fresh link for ${debridFile.path}. Deleting file")
-            refresherExecutor.submit { fileContentsService.deleteContents(debridFile.path) }
+            fileContentsService.deleteContents(debridFile.path)
             debridFile.delete()
             return null
         }
@@ -213,18 +218,19 @@ class FileService(
 
     fun addProviderDebridLinkToDebridFile(debridFile: File): DebridFileContents? {
         val contents = objectMapper.readValue<DebridFileContents>(debridFile)
-        debridClient.getDirectDownloadLink(contents.magnet!!)
-                .firstOrNull { it.path.fileName() == contents.originalPath.fileName() }
-                ?.let {
-                    contents.debridLinks.add(
-                            it.toDebridLink(debridClient.getProvider())
-                    )
-                    debridFile.writeText(
-                            objectMapper.writeValueAsString(contents)
-                    )
-                    refresherExecutor.submit { fileContentsService.refreshContentsOnPath(debridFile.path, contents) }
-                    return contents
-                }
+        val ddl = debridClient.getDirectDownloadLink(contents.magnet!!)
+        ddl.firstOrNull { it.path.fileName() == contents.originalPath.fileName() }
+            ?.let {
+                contents.debridLinks.add(
+                    it.toDebridLink(debridClient.getProvider())
+                )
+                logger.info("updating contents of ${debridFile.path}: ${objectMapper.writeValueAsString(contents)}")
+                debridFile.writeText(
+                    objectMapper.writeValueAsString(contents)
+                )
+                refresherExecutor.submit { fileContentsService.refreshContentsOnPath(debridFile.path, contents) }
+                return contents
+            }
         return null
     }
 
@@ -233,8 +239,8 @@ class FileService(
     private fun String.fileName() = this.split("/").last()
 
     data class CreateFileRequest(
-            val path: String,
-            val size: Long,
-            val link: String
+        val path: String,
+        val size: Long,
+        val link: String
     )
 }

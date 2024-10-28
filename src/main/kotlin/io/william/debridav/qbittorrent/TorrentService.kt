@@ -6,10 +6,18 @@ import io.william.debridav.fs.FileService
 import io.william.debridav.repository.CategoryRepository
 import io.william.debridav.repository.TorrentFileRepository
 import io.william.debridav.repository.TorrentRepository
+import org.apache.commons.lang.CharSet
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.web.util.UriComponentsBuilder
+import java.net.URI
+import java.net.URLDecoder
+import java.net.URLEncoder
+import java.nio.charset.Charset
 import java.security.MessageDigest
+import java.security.URIParameter
 import java.time.Instant
+import java.util.UUID
 
 
 @Service
@@ -24,14 +32,14 @@ class TorrentService(
 
     fun addTorrent(category: String, magnet: String): Boolean {
         if (debridClient.isCached(magnet)) {
-            debridClient.getDirectDownloadLink(magnet).let { cachedFiles ->
+                debridClient.getDirectDownloadLink(magnet).let { cachedFiles ->
                 if (cachedFiles.isEmpty()) {
                     logger.warn("Received empty list of files from debrid client")
                     return false
                 }
-                createTorrent(cachedFiles, category)
+                val torrent = createTorrent(cachedFiles, category, magnet)
                 cachedFiles.forEach {
-                    createFile(it, magnet)
+                    createFile(it, magnet, torrent)
                 }
                 return true
             }
@@ -43,24 +51,29 @@ class TorrentService(
 
     fun createFile(
             content: DebridResponse,
-            magnet: String
+            magnet: String,
+            torrent: Torrent
     ) {
         val createRequest = FileService.CreateFileRequest(
-                content.path,
+                "${torrent.name}/${content.path}",
                 content.size,
                 content.link
         )
         fileService.createDebridFile(createRequest, magnet, null)
     }
 
-    fun createTorrent(content: List<DebridResponse>, categoryName: String) {
+    private fun createTorrent(
+        content: List<DebridResponse>,
+        categoryName: String,
+        magnet: String
+    ): Torrent {
         val torrent = Torrent()
         torrent.category = categoryRepository.findByName(categoryName)
                 ?: run { createCategory(categoryName) }
-        torrent.name = content.first().path.split("/").first()
+        torrent.name = getNameFromMagnet(magnet)
         torrent.created = Instant.now()
         torrent.hash = generateHash(torrent)
-        torrent.savePath = "${torrent.category!!.downloadPath}/"
+        torrent.savePath = "${torrent.category!!.downloadPath}/${URLDecoder.decode(torrent.name, Charsets.UTF_8.name())}"
         torrent.files = content.map {
             val torrentFile = TorrentFile()
             torrentFile.fileName = it.path
@@ -68,7 +81,7 @@ class TorrentService(
             torrentFile.path = it.path
             torrentFileRepository.save(torrentFile)
         }
-        torrentRepository.save(torrent)
+        return torrentRepository.save(torrent)
     }
 
     fun getTorrentsByCategory(categoryName: String): List<Torrent> {
@@ -120,5 +133,14 @@ class TorrentService(
             hexChars[j * 2 + 1] = hexArray[v and 0x0F]
         }
         return String(hexChars)
+    }
+
+    fun getNameFromMagnet(magnet: String) : String {
+        return magnet.split("?").last().split("&")
+            .map { it.split("=") }
+            .associate { it.first() to it.last() }["dn"]
+            ?.let {
+                URLDecoder.decode(it, Charsets.UTF_8.name())
+            } ?: UUID.randomUUID().toString()
     }
 }

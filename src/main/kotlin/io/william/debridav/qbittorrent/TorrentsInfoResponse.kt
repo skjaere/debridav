@@ -81,8 +81,6 @@ data class TorrentsInfoResponse(
 ) {
     companion object {
         fun ofTorrent(torrent: Torrent, downloadDir: String): TorrentsInfoResponse {
-            val paths = torrent.files!!.first().path!!.split("/")
-            val path = if (paths.size == 1) "/" else paths.first()
             return TorrentsInfoResponse(
                     addedOn = torrent.created!!.toEpochMilli().toInt(),
                     amountLeft = 0,
@@ -91,7 +89,7 @@ data class TorrentsInfoResponse(
                     category = torrent.category!!.name!!,
                     completed = 1,
                     completionOn = torrent.created!!.toEpochMilli().toInt(),
-                    contentPath = "$downloadDir/$path",
+                    contentPath = "$downloadDir${torrent.savePath}",
                     dlLimit = 0,
                     dlSpeed = 0,
                     downloaded = 100,

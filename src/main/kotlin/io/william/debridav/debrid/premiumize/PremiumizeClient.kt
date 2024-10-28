@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
+import java.net.URLEncoder
 import java.nio.channels.UnresolvedAddressException
 
 
@@ -39,7 +40,7 @@ class PremiumizeClient(
 
     override fun getDirectDownloadLink(magnet: String): List<DebridResponse> {
         return restClient.post()
-                .uri("$baseUrl/transfer/directdl?apikey=$apiKey&src=${magnet}")
+                .uri("$baseUrl/transfer/directdl?apikey=$apiKey&src=$magnet")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
