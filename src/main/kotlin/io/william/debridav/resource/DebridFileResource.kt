@@ -6,12 +6,11 @@ import io.milton.http.Request
 import io.milton.resource.DeletableResource
 import io.milton.resource.GetableResource
 import io.william.debridav.StreamingService
+import io.william.debridav.StreamingService.Result.*
 import io.william.debridav.debrid.DebridClient
 import io.william.debridav.fs.DebridFileContents
-import io.william.debridav.fs.DebridProvider
 import io.william.debridav.fs.FileService
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import java.io.File
 import java.io.OutputStream
 import java.time.Instant
@@ -21,7 +20,7 @@ class DebridFileResource(
         val file: File,
         fileService: FileService,
         private val streamingService: StreamingService,
-        @Value("\${debridav.debridclient}") val debridProvider: DebridProvider
+        private val debridClient: DebridClient
 ) : AbstractResource(fileService), GetableResource, DeletableResource {
     private val debridFileContents: DebridFileContents = fileService.getDebridFileContents(file)
     private val logger = LoggerFactory.getLogger(DebridClient::class.java)
@@ -62,16 +61,16 @@ class DebridFileResource(
             contentType: String?
     ) {
         out.use { outputStream ->
-            debridFileContents.getProviderLink(debridProvider)?.let { debridLink ->
+            debridFileContents.getProviderLink(debridClient.getProvider())?.let { debridLink ->
                 val result = streamingService.streamDebridLink(debridLink, range, debridFileContents.size, outputStream)
                 when (result) {
-                    StreamingService.Result.DEAD_LINK -> handleDeadLink(range, debridFileContents.size, outputStream)
-                    StreamingService.Result.ERROR -> handleDeadLink(range, debridFileContents.size, outputStream)
-                    StreamingService.Result.OK -> {}
+                    DEAD_LINK -> handleDeadLink(range, debridFileContents.size, outputStream)
+                    ERROR -> handleDeadLink(range, debridFileContents.size, outputStream)
+                    OK -> {}
                 }
             } ?: run {
                 fileService.addProviderDebridLinkToDebridFile(file)?.let { refreshedContents ->
-                    streamingService.streamDebridLink(refreshedContents.getProviderLink(debridProvider)!!, range, debridFileContents.size, outputStream)
+                    streamingService.streamDebridLink(refreshedContents.getProviderLink(debridClient.getProvider())!!, range, debridFileContents.size, outputStream)
                 }
             }
         }
@@ -79,8 +78,13 @@ class DebridFileResource(
 
     private fun handleDeadLink(range: Range?, fileSize: Long, out: OutputStream) {
         fileService.handleDeadLink(file)?.let {
-            if (streamingService.streamDebridLink(it.getProviderLink(debridProvider)!!, range, fileSize, out) != StreamingService.Result.OK) {
-                logger.info("failed to refresh file ${debridFileContents.getProviderLink(debridProvider)}")
+            if (streamingService.streamDebridLink(
+                    it.getProviderLink(debridClient.getProvider())!!,
+                    range,
+                    fileSize,
+                    out
+            ) != StreamingService.Result.OK) {
+                logger.info("failed to refresh file ${debridFileContents.getProviderLink(debridClient.getProvider())}")
             }
         }
     }

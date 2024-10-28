@@ -10,20 +10,6 @@ data class DebridFileContents(
         var magnet: String?,
         var debridLinks: MutableList<DebridLink>
 ) {
-    companion object {
-        fun ofDebridResponse(
-                content: DebridResponse,
-                magnet: String?,
-                debridProvider: DebridProvider
-        ) = DebridFileContents(
-                content.path,
-                content.size,
-                Instant.now().toEpochMilli(),
-                magnet,
-                mutableListOf(DebridLink(debridProvider, content.link))
-        )
-    }
-
     fun getProviderLink(provider: DebridProvider): DebridLink? = debridLinks.firstOrNull { it.provider == provider }
 
     override fun equals(other: Any?): Boolean {
@@ -35,6 +21,15 @@ data class DebridFileContents(
         }
 
         return super.equals(other)
+    }
+
+    override fun hashCode(): Int {
+        var result = originalPath.hashCode()
+        result = 31 * result + size.hashCode()
+        result = 31 * result + modified.hashCode()
+        result = 31 * result + (magnet?.hashCode() ?: 0)
+        result = 31 * result + debridLinks.hashCode()
+        return result
     }
 }
 

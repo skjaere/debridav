@@ -3,6 +3,7 @@ package io.william.debridav.test
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.milton.http.Range
 import io.william.debridav.StreamingService
+import io.william.debridav.debrid.DebridClient
 import io.william.debridav.fs.DebridProvider
 import io.william.debridav.fs.FileService
 import io.william.debridav.resource.DebridFileResource
@@ -14,17 +15,20 @@ import java.io.File
 
 class DebridFileResourceTest {
     private val objectMapper = jacksonObjectMapper()
+    private val debridClient = mock<DebridClient>()
 
     @Test
     fun refreshesFileWhenDeadLinkIsReported() {
         //given
         val debridFile = File.createTempFile("/tmp", ".debridfile")
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
+        val debridClient = mock<DebridClient>()
+        given(debridClient.getProvider()).willReturn(DebridProvider.PREMIUMIZE)
 
         val fileService: FileService = mock()
         val streamingService: StreamingService = mock()
         given(fileService.getDebridFileContents(debridFile)).willReturn(debridFileContents)
-        val debridFileResource = DebridFileResource(debridFile, fileService, streamingService, DebridProvider.PREMIUMIZE)
+        val debridFileResource = DebridFileResource(debridFile, fileService, streamingService, debridClient)
         val outputStream = ByteArrayOutputStream()
         given(fileService.handleDeadLink(any())).willReturn(null)
         val content = debridFileContents.debridLinks.first()
@@ -47,11 +51,13 @@ class DebridFileResourceTest {
         //given
         val debridFile = File.createTempFile("/tmp", ".debridfile")
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
+        val debridClient = mock<DebridClient>()
+        given(debridClient.getProvider()).willReturn(DebridProvider.REAL_DEBRID)
 
         val fileService: FileService = mock()
         val streamingService: StreamingService = mock()
         given(fileService.getDebridFileContents(debridFile)).willReturn(debridFileContents)
-        val debridFileResource = DebridFileResource(debridFile, fileService, streamingService, DebridProvider.REAL_DEBRID)
+        val debridFileResource = DebridFileResource(debridFile, fileService, streamingService, debridClient)
         val outputStream = ByteArrayOutputStream()
         given(fileService.addProviderDebridLinkToDebridFile(debridFile)).willReturn(null)
 

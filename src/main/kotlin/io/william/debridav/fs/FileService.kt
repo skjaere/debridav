@@ -4,6 +4,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.milton.resource.Resource
 import io.william.debridav.StreamingService
+import io.william.debridav.configuration.DebridavConfiguration
 import io.william.debridav.debrid.DebridClient
 import io.william.debridav.refresherExecutor
 import io.william.debridav.resource.DebridFileResource
@@ -12,7 +13,6 @@ import io.william.debridav.resource.FileResource
 import jakarta.annotation.PostConstruct
 import org.apache.commons.io.FileExistsException
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.File
 import java.io.InputStream
@@ -25,10 +25,7 @@ import javax.naming.ConfigurationException
 @Service
 class FileService(
     private val debridClient: DebridClient,
-    @Value("\${debriDav.local.file.path}") val localPath: String,
-    @Value("\${debriDav.local.download.path}") val downloadPath: String,
-    @Value("\${debridav.cache.local.debridfiles.threshold.mb}") val cacheLocalFilesMbThreshold: Int,
-    @Value("\${debridav.debridclient}") val debridProvider: DebridProvider,
+    private val debridavConfiguration: DebridavConfiguration,
     private val streamingService: StreamingService,
     private val fileContentsService: FileContentsService
 ) {
@@ -37,8 +34,8 @@ class FileService(
 
     @PostConstruct
     fun postConstruct() {
-        if (localPath.endsWith("/")) {
-            throw ConfigurationException("debridav.local.file.path: $localPath should not contain a trailing slash")
+        if (debridavConfiguration.filePath.endsWith("/")) {
+            throw ConfigurationException("debridav.local.file.path: ${debridavConfiguration.filePath} should not contain a trailing slash")
         }
     }
 
@@ -54,12 +51,12 @@ class FileService(
             magnet,
             mutableListOf(
                 DebridLink(
-                    debridProvider,
+                    debridClient.getProvider(),
                     createRequest.link
                 )
             )
         )
-        if (createRequest.size < cacheLocalFilesMbThreshold * 1024 * 1024) {
+        if (createRequest.size < debridavConfiguration.cacheLocalDebridFilesThreshold * 1024 * 1024) {
             createLocalFile(
                 createRequest.path,
                 URI(createRequest.link).toURL().openConnection().getInputStream()
@@ -76,7 +73,7 @@ class FileService(
         path: String,
         inputStream: InputStream
     ): File {
-        return createLocalFile("$localPath$downloadPath/$path.debridfile", inputStream)
+        return createLocalFile("${debridavConfiguration.filePath}${debridavConfiguration.downloadPath}/$path.debridfile", inputStream)
     }
 
     fun createLocalFile(
@@ -139,7 +136,7 @@ class FileService(
     }
 
     fun getFileAtPath(path: String): File? {
-        val file = File("$localPath$path")
+        val file = File("${debridavConfiguration.filePath}$path")
         if (file.exists()) return file
         return null
     }
@@ -149,7 +146,12 @@ class FileService(
             throw RuntimeException("Provided file is a directory")
         }
         return if (this.name.endsWith(".debridfile")) {
-            DebridFileResource(this, this@FileService, streamingService, debridProvider)
+            DebridFileResource(
+                this,
+                this@FileService,
+                streamingService,
+                debridClient
+            )
         } else {
             if (this.exists())
                 return FileResource(this, this@FileService)
@@ -189,7 +191,7 @@ class FileService(
                 .firstOrNull { it.path == contents.originalPath }
                 ?.let {
                     contents.debridLinks
-                        .first { link -> link.provider == debridProvider }
+                        .first { link -> link.provider == debridClient.getProvider() }
                         .link = it.link
                     debridFile.writeText(
                         objectMapper.writeValueAsString(contents)

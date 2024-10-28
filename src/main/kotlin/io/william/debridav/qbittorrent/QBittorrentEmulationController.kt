@@ -1,7 +1,7 @@
 package io.william.debridav.qbittorrent
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.springframework.beans.factory.annotation.Value
+import io.william.debridav.configuration.DebridavConfiguration
 import org.springframework.core.io.ResourceLoader
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*
 class QBittorrentEmulationController(
         private val torrentService: TorrentService,
         private val resourceLoader: ResourceLoader,
-        @Value("\${debridav.mountpath}") private val downloadDir: String
+        private val debridavConfiguration: DebridavConfiguration
 ) {
     @GetMapping("/api/v2/app/webapiVersion")
     fun version(): String {
@@ -37,7 +37,7 @@ class QBittorrentEmulationController(
         return resourceLoader
                 .getResource("classpath:qbittorrent_properties_response.json")
                 .getContentAsString(Charsets.UTF_8)
-                .replace("%DOWNLOAD_DIR%", downloadDir)
+                .replace("%DOWNLOAD_DIR%", debridavConfiguration.mountPath)
     }
 
 
@@ -61,7 +61,7 @@ class QBittorrentEmulationController(
                 .getTorrentsByCategory(category!!)
                 .filter { it.files?.firstOrNull()?.path != null }
                 .map {
-                    TorrentsInfoResponse.ofTorrent(it, downloadDir)
+                    TorrentsInfoResponse.ofTorrent(it, debridavConfiguration.mountPath)
                 }
     }
 

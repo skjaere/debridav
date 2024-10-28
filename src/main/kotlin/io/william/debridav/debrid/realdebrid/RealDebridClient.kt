@@ -7,7 +7,6 @@ import io.william.debridav.debrid.DebridClient
 import io.william.debridav.debrid.DebridResponse
 import io.william.debridav.fs.DebridProvider
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -19,8 +18,7 @@ import java.nio.channels.UnresolvedAddressException
 @Component
 @ConditionalOnExpression("#{'\${debridav.debridclient}' matches 'realdebrid'}")
 class RealDebridClient(
-        @Value("\${realdebrid.apikey}") private val apiKey: String,
-        @Value("\${realdebrid.baseurl}") private val baseUrl: String
+        private val realDebridConfiguration: RealDebridConfiguration
 ) : DebridClient {
     private val logger = LoggerFactory.getLogger(RealDebridClient::class.java)
     private val restClient = RestClient.create()
@@ -29,9 +27,9 @@ class RealDebridClient(
         try {
             val hash = MagnetParser.getHashFromMagnet(magnet)
             return restClient.get()
-                    .uri("$baseUrl/torrents/instantAvailability/$hash")
+                    .uri("${realDebridConfiguration.baseUrl}/torrents/instantAvailability/$hash")
                     .accept(MediaType.APPLICATION_JSON)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
                     .retrieve()
                     .body(JsonNode::class.java)
                     ?.get(hash!!.lowercase())?.get("rd")
@@ -79,10 +77,10 @@ class RealDebridClient(
 
     private fun addMagnet(magnet: String): AddMagnetResponse? {
         val response = restClient.post()
-                .uri("$baseUrl/torrents/addMagnet")
+                .uri("${realDebridConfiguration.baseUrl}/torrents/addMagnet")
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
                 .body("magnet=$magnet")
                 .retrieve()
                 .body(AddMagnetResponse::class.java)
@@ -104,9 +102,9 @@ class RealDebridClient(
 
     private fun getTorrentInfo(id: String): Torrent? {
         val response = restClient.get()
-                .uri("$baseUrl/torrents/info/$id")
+                .uri("${realDebridConfiguration.baseUrl}/torrents/info/$id")
                 .accept(MediaType.APPLICATION_JSON)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
                 .retrieve()
                 .body(JsonNode::class.java)
         logger.info("got response")
@@ -130,9 +128,9 @@ class RealDebridClient(
 
     private fun getTorrentInfoSelected(id: String): List<HostedFile> {
         val response = restClient.get()
-                .uri("$baseUrl/torrents/info/$id")
+                .uri("${realDebridConfiguration.baseUrl}/torrents/info/$id")
                 .accept(MediaType.APPLICATION_JSON)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
                 .retrieve()
                 .body(JsonNode::class.java)
         logger.info("got response")
@@ -154,10 +152,10 @@ class RealDebridClient(
 
     private fun selectFilesFromTorrent(torrentId: String, fileIds: List<String>) {
         restClient.post()
-                .uri("$baseUrl/torrents/selectFiles/$torrentId")
+                .uri("${realDebridConfiguration.baseUrl}/torrents/selectFiles/$torrentId")
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
                 .body("files=${fileIds.joinToString(",")}")
                 .retrieve()
                 .body(AddMagnetResponse::class.java)
@@ -176,10 +174,10 @@ class RealDebridClient(
 
     private fun unrestrictLink(link: String): UnrestrictedLink? {
         return restClient.post()
-                .uri("$baseUrl/unrestrict/link")
+                .uri("${realDebridConfiguration.baseUrl}/unrestrict/link")
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
                 .body("link=$link")
                 .retrieve()
                 .body(UnrestrictedLink::class.java)

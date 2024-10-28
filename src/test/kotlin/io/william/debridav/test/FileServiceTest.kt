@@ -3,6 +3,7 @@ package io.william.debridav.test
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.william.debridav.StreamingService
+import io.william.debridav.configuration.DebridavConfiguration
 import io.william.debridav.debrid.premiumize.PremiumizeClient
 import io.william.debridav.debrid.realdebrid.RealDebridClient
 import io.william.debridav.fs.*
@@ -21,17 +22,21 @@ class FileServiceTest {
     fun updatesFileAndReturnsRefreshedContentWhenEncountering404() {
         //given
         val premiumizeClient = mock(PremiumizeClient::class.java)
+        given(premiumizeClient.getProvider()).willReturn(DebridProvider.PREMIUMIZE)
         val streamingService = mock(StreamingService::class.java)
         val fileContentsService = mock(FileContentsService::class.java)
         val debridFile = File.createTempFile("/tmp", ".debridfile")
+        val debridavConfiguration = DebridavConfiguration(
+            "/tmp/debridtest/files",
+            "/downloads",
+            "",
+            2
+        )
 
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
         val fileService = FileService(
             premiumizeClient,
-            "/tmp/debridtest/files",
-            "/downloads",
-            2,
-            DebridProvider.PREMIUMIZE,
+            debridavConfiguration,
             streamingService,
             fileContentsService
         )
@@ -59,19 +64,23 @@ class FileServiceTest {
     fun updatesFileAndReturnsRefreshedContentWhenEncountering404AndFileHasMultipleProviders() {
         //given
         val premiumizeClient = mock(PremiumizeClient::class.java)
+        given(premiumizeClient.getProvider()).willReturn(DebridProvider.PREMIUMIZE)
         val streamingService = mock(StreamingService::class.java)
         val debridFile = File.createTempFile("/tmp", ".debridfile")
         val contents = debridFileContents.copy()
         val fileContentsService = mock(FileContentsService::class.java)
+        val debridavConfiguration = DebridavConfiguration(
+            "/tmp/debridtest/files",
+            "/downloads",
+            "",
+            2
+        );
         contents.debridLinks.add(DebridLink(DebridProvider.REAL_DEBRID, "http://localhost/deadLink"))
 
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
         val fileService = FileService(
             premiumizeClient,
-            "/tmp/debridtest/files",
-            "/downloads",
-            2,
-            DebridProvider.PREMIUMIZE,
+            debridavConfiguration,
             streamingService,
             fileContentsService
         )
@@ -99,17 +108,21 @@ class FileServiceTest {
     fun deletesFileWhenLinkCannotBeRefreshed() {
         //given
         val premiumizeClient = mock(PremiumizeClient::class.java)
+        given(premiumizeClient.getProvider()).willReturn(DebridProvider.PREMIUMIZE)
         val streamingService = mock(StreamingService::class.java)
         val debridFile = File.createTempFile("/tmp", ".debridfile")
         val fileContentsService = mock(FileContentsService::class.java)
+        val debridavConfiguration = DebridavConfiguration(
+            "/tmp/debridtest/files",
+            "/downloads",
+            "",
+            2
+        );
 
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
         val fileService = FileService(
             premiumizeClient,
-            "/tmp/debridtest/files",
-            "/downloads",
-            2,
-            DebridProvider.PREMIUMIZE,
+            debridavConfiguration,
             streamingService,
             fileContentsService
         )
@@ -128,17 +141,21 @@ class FileServiceTest {
     fun addsDebridLinkToFileWhenProviderIsMissing() {
         //given
         val debridClient = mock(RealDebridClient::class.java)
+        given(debridClient.getProvider()).willReturn(DebridProvider.REAL_DEBRID)
         val streamingService = mock(StreamingService::class.java)
         val debridFile = File.createTempFile("/tmp", ".debridfile")
         val fileContentsService = mock(FileContentsService::class.java)
+        val debridavConfiguration = DebridavConfiguration(
+            "/tmp/debridtest/files",
+            "/downloads",
+            "",
+            2
+        );
 
         debridFile.writeText(objectMapper.writeValueAsString(debridFileContents))
         val fileService = FileService(
             debridClient,
-            "/tmp/debridtest/files",
-            "/downloads",
-            2,
-            DebridProvider.PREMIUMIZE,
+            debridavConfiguration,
             streamingService,
             fileContentsService
         )
