@@ -1,4 +1,4 @@
-FROM openjdk:17-alpine as builder
+FROM alpine/java:21-jdk as builder
 
 VOLUME h2data
 
@@ -9,7 +9,7 @@ ARG JAR_FILE=target/debrid-0.0.1-SNAPSHOT.jar
 COPY ${JAR_FILE} application.jar
 RUN java -Djarmode=layertools -jar application.jar extract
 
-FROM openjdk:17-alpine
+FROM alpine/java:21-jdk
 WORKDIR application
 COPY --from=builder application/dependencies/ ./
 COPY --from=builder application/spring-boot-loader/ ./
