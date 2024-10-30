@@ -2,7 +2,7 @@ package io.william.debridav.debrid.premiumize
 
 import com.fasterxml.jackson.annotation.JsonAlias
 
-data class DirectDownloadResponse(
+data class DirectDownloadResponseJackson(
         val status: String,
         val location: String,
         val filename: String,

@@ -1,12 +1,12 @@
 package io.william.debridav.fs
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import com.google.common.cache.CacheBuilder
+import com.google.common.cache.CacheLoader
+import com.google.common.cache.LoadingCache
 import io.milton.resource.Resource
-import io.william.debridav.StreamingService
 import io.william.debridav.configuration.DebridavConfiguration
-import io.william.debridav.debrid.DebridClient
-import io.william.debridav.refresherExecutor
+import io.william.debridav.debrid.DebridFileContentsDeserializer
 import io.william.debridav.resource.DebridFileResource
 import io.william.debridav.resource.DirectoryResource
 import io.william.debridav.resource.FileResource
@@ -16,19 +16,17 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.io.File
 import java.io.InputStream
-import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-import java.time.Instant
 import javax.naming.ConfigurationException
 
 @Service
 class FileService(
-    private val debridClient: DebridClient,
-    private val debridavConfiguration: DebridavConfiguration,
-    private val streamingService: StreamingService,
-    private val fileContentsService: FileContentsService
+    private val debridavConfiguration: DebridavConfiguration
 ) {
+    private val cache: LoadingCache<String, DebridFileContents?> = CacheBuilder.newBuilder()
+        .maximumSize(1000)
+        .build(CacheLoader.from { path -> loadContentsFromFile(path) })
     private val logger = LoggerFactory.getLogger(FileService::class.java)
     private val objectMapper = jacksonObjectMapper()
 
@@ -40,40 +38,13 @@ class FileService(
     }
 
     fun createDebridFile(
-        createRequest: CreateFileRequest,
-        magnet: String?,
-        torrentFile: ByteArray?
-    ) {
-        val debridFileContents = DebridFileContents(
-            createRequest.path,
-            createRequest.size,
-            Instant.now().toEpochMilli(),
-            magnet,
-            mutableListOf(
-                DebridLink(
-                    debridClient.getProvider(),
-                    createRequest.link
-                )
-            )
-        )
-        if (createRequest.size < debridavConfiguration.cacheLocalDebridFilesThreshold * 1024 * 1024) {
-            createLocalFile(
-                createRequest.path,
-                URI(createRequest.link).toURL().openConnection().getInputStream()
-            )
-        } else {
-            createDebridFile(
-                createRequest.path,
-                objectMapper.writeValueAsString(debridFileContents).byteInputStream()
-            )
-        }
-    }
-
-    fun createDebridFile(
         path: String,
-        inputStream: InputStream
+        debridFileContents: DebridFileContents
     ): File {
-        return createLocalFile("${debridavConfiguration.filePath}${debridavConfiguration.downloadPath}/$path.debridfile", inputStream)
+        return createLocalFile(
+            "${debridavConfiguration.filePath}${debridavConfiguration.downloadPath}/$path.debridfile",
+            objectMapper.writeValueAsString(debridFileContents).byteInputStream()
+        )
     }
 
     fun createLocalFile(
@@ -108,10 +79,14 @@ class FileService(
             destination.toPath(),
             StandardCopyOption.REPLACE_EXISTING
         )
+        cache.getIfPresent(path)?.let {
+            cache.invalidate(path)
+            cache.put(src.path, it)
+        }
     }
 
     fun deleteFile(file: File) {
-        fileContentsService.deleteContents(file.path)
+        cache.invalidate(file.path)
         file.delete()
     }
 
@@ -122,18 +97,9 @@ class FileService(
             Files.createDirectory(file.toPath())
         }
 
-        return DirectoryResource(file, this)
+        return DirectoryResource(file, listOf(),this)
     }
 
-    fun getResourceAtPath(path: String): Resource? {
-        return getFileAtPath(path)
-            ?.let {
-                if (it.isDirectory) it.toDirectoryResource()
-                else it.toFileResource()
-            } ?: run {
-            getFileAtPath("$path.debridfile")?.toFileResource()
-        }
-    }
 
     fun getFileAtPath(path: String): File? {
         val file = File("${debridavConfiguration.filePath}$path")
@@ -141,108 +107,30 @@ class FileService(
         return null
     }
 
-    fun File.toFileResource(): Resource? {
-        if (this.isDirectory) {
-            throw RuntimeException("Provided file is a directory")
-        }
-        return if (this.name.endsWith(".debridfile")) {
-            DebridFileResource(
-                this,
-                this@FileService,
-                streamingService,
-                debridClient
-            )
-        } else {
-            if (this.exists())
-                return FileResource(this, this@FileService)
-            null
-        }
-    }
-
-    fun toResource(file: File): Resource? {
-        return if (file.isDirectory) file.toDirectoryResource() else file.toFileResource()
-    }
-
-    fun File.toDirectoryResource(): DirectoryResource {
-        if (!this.isDirectory) {
-            throw RuntimeException("Not a directory")
-        }
-        return DirectoryResource(this, this@FileService)
-    }
-
     fun moveResource(item: Resource, destination: String, name: String) {
         when (item) {
             is FileResource -> moveFile(item.file.path, destination, name)
             is DebridFileResource -> moveFile(item.file.path, destination, "$name.debridfile")
-            is DirectoryResource -> moveFile(item.directory.path, destination, name)
+            is DirectoryResource -> moveFile(item.directory.path,  destination, name)
         }
     }
 
 
     fun getSizeOfCachedContent(debridFile: File): Long {
-        return objectMapper.readValue<DebridFileContents>(debridFile).size
+        return cache.get(debridFile.path).size
     }
 
-    fun refreshDebridFile(debridFile: File): DebridFileContents? {
-        val contents = objectMapper.readValue<DebridFileContents>(debridFile)
-        val isCached = debridClient.isCached(contents.magnet!!)
-        if (isCached) {
-            debridClient.getDirectDownloadLink(contents.magnet!!)
-                .firstOrNull { it.path == contents.originalPath }
-                ?.let {
-                    contents.debridLinks
-                        .first { link -> link.provider == debridClient.getProvider() }
-                        .link = it.link
-                    debridFile.writeText(
-                        objectMapper.writeValueAsString(contents)
-                    )
-                    refresherExecutor.submit { fileContentsService.refreshContentsOnPath(debridFile.path, contents) }
-                    return contents
-                } ?: run { return null }
+    private fun loadContentsFromFile(path: String): DebridFileContents? {
+        return if(File(path).exists()) {
+            DebridFileContentsDeserializer.deserialize(File(path).readText(Charsets.UTF_8))
         }
-        return null
+        else null
     }
 
-    fun handleDeadLink(
-        debridFile: File,
-    ): DebridFileContents? {
-        logger.info("Found stale link for ${debridFile.path}. Attempting refresh.")
-        refreshDebridFile(debridFile)?.let {
-            logger.info("Found fresh link for ${debridFile.path}")
-            return it
-        } ?: run {
-            logger.info("Unable to find fresh link for ${debridFile.path}. Deleting file")
-            fileContentsService.deleteContents(debridFile.path)
-            debridFile.delete()
-            return null
-        }
+    fun writeContentsToFile(file: File, debridFileContents: DebridFileContents) {
+        file.writeText(objectMapper.writeValueAsString(debridFileContents))
+        cache.put(file.path, debridFileContents)
     }
 
-    fun addProviderDebridLinkToDebridFile(debridFile: File): DebridFileContents? {
-        val contents = objectMapper.readValue<DebridFileContents>(debridFile)
-        val ddl = debridClient.getDirectDownloadLink(contents.magnet!!)
-        ddl.firstOrNull { it.path.fileName() == contents.originalPath.fileName() }
-            ?.let {
-                contents.debridLinks.add(
-                    it.toDebridLink(debridClient.getProvider())
-                )
-                logger.info("updating contents of ${debridFile.path}: ${objectMapper.writeValueAsString(contents)}")
-                debridFile.writeText(
-                    objectMapper.writeValueAsString(contents)
-                )
-                refresherExecutor.submit { fileContentsService.refreshContentsOnPath(debridFile.path, contents) }
-                return contents
-            }
-        return null
-    }
-
-    fun getDebridFileContents(file: File): DebridFileContents = fileContentsService.getContentsOnPath(file.path)
-
-    private fun String.fileName() = this.split("/").last()
-
-    data class CreateFileRequest(
-        val path: String,
-        val size: Long,
-        val link: String
-    )
+    fun getDebridFileContents(file: File): DebridFileContents =  cache.get(file.path)
 }

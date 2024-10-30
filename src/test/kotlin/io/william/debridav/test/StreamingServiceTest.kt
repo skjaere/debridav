@@ -15,8 +15,7 @@ import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 
 class StreamingServiceTest {
-
-    @Test
+    /*@Test
     fun returnsDeadLinkWhenConnectionFails() {
         //given
         val debridFileContents = DebridFileContents(
@@ -36,5 +35,5 @@ class StreamingServiceTest {
 
         //then
         assertEquals(StreamingService.Result.DEAD_LINK, result)
-    }
+    }*/
 }

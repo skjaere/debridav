@@ -24,8 +24,9 @@ class TestContextInitializer : ApplicationContextInitializer<ConfigurableApplica
             FileUtils.deleteDirectory(File("/tmp/debridavtests"))
         })
         TestPropertyValues.of(
-                "premiumize.baseurl=http://localhost:$port",
-                "mockserver.port=$port"
+            "premiumize.baseurl=http://localhost:$port/premiumize",
+            "realdebrid.baseurl=http://localhost:$port/realdebrid",
+            "mockserver.port=$port"
         ).applyTo(applicationContext)
     }
 }

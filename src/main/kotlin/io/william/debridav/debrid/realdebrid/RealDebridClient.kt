@@ -1,40 +1,48 @@
 package io.william.debridav.debrid.realdebrid
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
+import io.william.debridav.debrid.CachedFile
 import io.william.debridav.debrid.DebridClient
-import io.william.debridav.debrid.DebridResponse
+import io.william.debridav.debrid.realdebrid.model.HashResponse
+import io.william.debridav.debrid.realdebrid.model.TorrentsInfo
 import io.william.debridav.fs.DebridProvider
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
-import org.springframework.web.client.RestClient
 import java.nio.channels.UnresolvedAddressException
+import java.time.Instant
+import java.util.*
+import kotlin.collections.HashMap
 
 
 @Component
-@ConditionalOnExpression("#{'\${debridav.debridclient}' matches 'realdebrid'}")
+@ConditionalOnExpression("#{'\${debridav.debrid-clients}'.contains('real_debrid')}")
 class RealDebridClient(
-        private val realDebridConfiguration: RealDebridConfiguration
+    private val realDebridConfiguration: RealDebridConfiguration,
+    private val httpClient: HttpClient
 ) : DebridClient {
     private val logger = LoggerFactory.getLogger(RealDebridClient::class.java)
-    private val restClient = RestClient.create()
 
-    override fun isCached(magnet: String): Boolean {
+    override suspend fun isCached(magnet: String): Boolean = coroutineScope {
         try {
-            val hash = MagnetParser.getHashFromMagnet(magnet)
-            return restClient.get()
-                    .uri("${realDebridConfiguration.baseUrl}/torrents/instantAvailability/$hash")
-                    .accept(MediaType.APPLICATION_JSON)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
-                    .retrieve()
-                    .body(JsonNode::class.java)
-                    ?.get(hash!!.lowercase())?.get("rd")
-                    ?.toList()
-                    ?.isNotEmpty() ?: false
+            val hash = MagnetParser.getHashFromMagnet(magnet)?.lowercase(Locale.getDefault())
+            val resp = httpClient
+                .get("${realDebridConfiguration.baseUrl}/torrents/instantAvailability/$hash") {
+                    headers {
+                        set(HttpHeaders.Accept, "application/json")
+                        set(HttpHeaders.Authorization, "Bearer ${realDebridConfiguration.apiKey}")
+                    }
+                }.body<HashMap<String, HashResponse>>()
+            resp[hash]?.get("rd")
+                ?.toList()
+                ?.isNotEmpty() ?: false
         } catch (e: UnresolvedAddressException) {
             logger.error("Failed to check cache for $magnet")
             throw RuntimeException(e)
@@ -44,142 +52,171 @@ class RealDebridClient(
         }
     }
 
-    override fun getDirectDownloadLink(magnet: String): List<DebridResponse> {
+    override suspend fun getCachedFiles(magnet: String, params: Map<String, String>): List<CachedFile> {
+        if (params.containsKey("torrentId")) {
+            val torrentId = params["torrentId"]!!
+            return getCachedFilesFromTorrentId(torrentId)
+        } else {
+            logger.info("getting cached files from real debrid")
+            return addMagnet(magnet)?.let { addMagnetResponse ->
+                getCachedFilesFromTorrentId(addMagnetResponse.id)
+            } ?: emptyList()
+        }
+    }
+
+    private suspend fun getCachedFilesFromTorrentId(torrentId: String): List<CachedFile> {
         val movieExtensions = listOf(".mkv", ".mp4")
-        return addMagnet(magnet)?.let { addMagnetResponse ->
-            getTorrentInfo(addMagnetResponse.id)?.let { torrent ->
-                val filmFileIds = torrent.files
-                        .filter { hostedFile -> movieExtensions.any { extension -> hostedFile.fileName.endsWith(extension) } }
-                        .map { hostedFile -> hostedFile.fileId }
-                selectFilesFromTorrent(addMagnetResponse.id, filmFileIds)
-                getTorrentInfoSelected(addMagnetResponse.id).let { selectedHostedFiles ->
-                    selectedHostedFiles
-                            .mapNotNull { unrestrictLink(it.link!!) }
-                            .map { unrestrictedLink ->
-                                DebridResponse(
-                                        "${torrent.name}/${unrestrictedLink.filename}",
-                                        unrestrictedLink.filesize,
-                                        unrestrictedLink.mimeType,
-                                        unrestrictedLink.download
-                                )
-                            }
+        return getCachedFilesFromTorrent(
+            getAllFilesInTorrent(torrentId),
+            movieExtensions,
+            torrentId
+        )
+    }
+
+    private suspend fun getCachedFilesFromTorrent(
+        torrentInfo: Torrent,
+        movieExtensions: List<String>,
+        torrentId: String
+    ): List<CachedFile> = coroutineScope{
+        val filmFileIds = torrentInfo.files
+            .filter { hostedFile -> movieExtensions.any { extension -> hostedFile.fileName.endsWith(extension) } }
+            .map { hostedFile -> hostedFile.fileId }
+        selectFilesFromTorrent(torrentId, filmFileIds)
+        getTorrentInfoSelected(torrentId).let { selectedHostedFiles ->
+            selectedHostedFiles
+                .map { async { unrestrictLink(it.link!!) } }
+                .awaitAll()
+                .map { unrestrictedLink ->
+                    logger.info("done getting cached files from real debrid")
+                    CachedFile(
+                        "${torrentInfo.name}/${unrestrictedLink.filename}",
+                        unrestrictedLink.filesize,
+                        unrestrictedLink.mimeType,
+                        unrestrictedLink.download,
+                        DebridProvider.REAL_DEBRID,
+                        Instant.now().toEpochMilli(),
+                        mapOf(
+                            "torrentId" to torrentId,
+                            "fileId" to unrestrictedLink.id
+                        )
+                    )
                 }
-            }
-        } ?: emptyList()
+        }
     }
 
     override fun getProvider(): DebridProvider = DebridProvider.REAL_DEBRID
 
+    @Serializable
     data class AddMagnetResponse(
-            val id: String,
-            val uri: String
+        val id: String,
+        val uri: String
     )
 
-    private fun addMagnet(magnet: String): AddMagnetResponse? {
-        val response = restClient.post()
-                .uri("${realDebridConfiguration.baseUrl}/torrents/addMagnet")
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
-                .body("magnet=$magnet")
-                .retrieve()
-                .body(AddMagnetResponse::class.java)
-
-        return response
+    private suspend fun addMagnet(magnet: String): AddMagnetResponse? {
+        return httpClient
+            .post("${realDebridConfiguration.baseUrl}/torrents/addMagnet") {
+                headers {
+                    set(HttpHeaders.Accept, "application/json")
+                    set(HttpHeaders.Authorization, "Bearer ${realDebridConfiguration.apiKey}")
+                    set(HttpHeaders.ContentType, "application/x-www-form-urlencoded")
+                }
+                setBody("magnet=$magnet")
+            }.body<AddMagnetResponse>()
     }
 
     data class Torrent(
-            val name: String,
-            val files: List<HostedFile>
+        val id: String,
+        val name: String,
+        val files: List<HostedFile>
     )
 
     data class HostedFile(
-            val fileId: String,
-            val fileName: String,
-            val fileSize: Long,
-            val link: String?
+        val fileId: String,
+        val fileName: String,
+        val fileSize: Long,
+        val link: String?
     )
 
-    private fun getTorrentInfo(id: String): Torrent? {
-        val response = restClient.get()
-                .uri("${realDebridConfiguration.baseUrl}/torrents/info/$id")
-                .accept(MediaType.APPLICATION_JSON)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
-                .retrieve()
-                .body(JsonNode::class.java)
-        logger.info("got response")
-        logger.info(jacksonObjectMapper().writeValueAsString(response))
-        return response?.let {
-            it as ObjectNode
-            Torrent(
-                    it["filename"].asText(),
-                    it["files"]
-                            .map { file ->
-                                HostedFile(
-                                        file["id"].asText(),
-                                        file["path"].asText(),
-                                        file["bytes"].asLong(),
-                                        null
-                                )
-                            }
-            )
+    private suspend fun getTorrentInfo(id: String): TorrentsInfo {
+        return httpClient
+            .get("${realDebridConfiguration.baseUrl}/torrents/info/$id") {
+                headers {
+                    set(HttpHeaders.Accept, "application/json")
+                    set(HttpHeaders.Authorization, "Bearer ${realDebridConfiguration.apiKey}")
+                }
+            }.body<TorrentsInfo>()
+    }
+
+    private suspend fun getAllFilesInTorrent(id: String): Torrent {
+        return getTorrentInfo(id)
+            .let {
+                Torrent(
+                    it.id,
+                    it.filename,
+                    it.files.map { file ->
+                        HostedFile(
+                            file.id.toString(),
+                            file.path,
+                            file.bytes,
+                            null
+                        )
+                    }
+                )
+            }
+    }
+
+    private suspend fun getTorrentInfoSelected(id: String): List<HostedFile> {
+        return getTorrentInfo(id)
+            .let { torrentInfo ->
+                torrentInfo.files
+                    .filter { file -> file.selected == 1 }
+                    .mapIndexed { idx, file ->
+                        HostedFile(
+                            file.id.toString(),
+                            file.path,
+                            file.bytes,
+                            torrentInfo.links[idx]
+                        )
+                    }
+            }
+    }
+
+    private suspend fun selectFilesFromTorrent(torrentId: String, fileIds: List<String>) {
+        val status: Int = httpClient
+            .post("${realDebridConfiguration.baseUrl}/torrents/selectFiles/$torrentId") {
+                headers {
+                    set(HttpHeaders.Accept, "application/json")
+                    set(HttpHeaders.Authorization, "Bearer ${realDebridConfiguration.apiKey}")
+                    set(HttpHeaders.ContentType, "application/x-www-form-urlencoded")
+                }
+                setBody("files=${fileIds.joinToString(",")}")
+            }.status.value
+        if (status in 400..404) {
+            throw RuntimeException("error selecting files. Response code: $status")
         }
     }
 
-    private fun getTorrentInfoSelected(id: String): List<HostedFile> {
-        val response = restClient.get()
-                .uri("${realDebridConfiguration.baseUrl}/torrents/info/$id")
-                .accept(MediaType.APPLICATION_JSON)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
-                .retrieve()
-                .body(JsonNode::class.java)
-        logger.info("got response")
-        logger.info(jacksonObjectMapper().writeValueAsString(response))
-        return response?.let {
-            it as ObjectNode
-            it["files"]
-                    .filter { file -> file["selected"].asInt() == 1 }
-                    .mapIndexed { idx, file ->
-                        HostedFile(
-                                file["id"].asText(),
-                                file["path"].asText(),
-                                file["bytes"].asLong(),
-                                it["links"][idx].asText()
-                        )
-                    }
-        }?.toList() ?: emptyList()
-    }
 
-    private fun selectFilesFromTorrent(torrentId: String, fileIds: List<String>) {
-        restClient.post()
-                .uri("${realDebridConfiguration.baseUrl}/torrents/selectFiles/$torrentId")
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
-                .body("files=${fileIds.joinToString(",")}")
-                .retrieve()
-                .body(AddMagnetResponse::class.java)
-    }
-
-
+    @Serializable
     data class UnrestrictedLink(
-            val id: String,
-            val filename: String,
-            val mimeType: String,
-            val filesize: Long,
-            val link: String,
-            val host: String,
-            val download: String
+        val id: String,
+        val filename: String,
+        val mimeType: String,
+        val filesize: Long,
+        val link: String,
+        val host: String,
+        val download: String
     )
 
-    private fun unrestrictLink(link: String): UnrestrictedLink? {
-        return restClient.post()
-                .uri("${realDebridConfiguration.baseUrl}/unrestrict/link")
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer ${realDebridConfiguration.apiKey}")
-                .body("link=$link")
-                .retrieve()
-                .body(UnrestrictedLink::class.java)
+    private suspend fun unrestrictLink(link: String): UnrestrictedLink = coroutineScope {
+        httpClient
+            .post("${realDebridConfiguration.baseUrl}/unrestrict/link") {
+                headers {
+                    set(HttpHeaders.Accept, "application/json")
+                    set(HttpHeaders.Authorization, "Bearer ${realDebridConfiguration.apiKey}")
+                    set(HttpHeaders.ContentType, "application/x-www-form-urlencoded")
+                }
+                setBody("link=$link")
+            }.body<UnrestrictedLink>()
     }
 }

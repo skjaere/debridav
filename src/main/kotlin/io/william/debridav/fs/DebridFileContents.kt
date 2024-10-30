@@ -1,16 +1,23 @@
 package io.william.debridav.fs
 
-import io.william.debridav.debrid.DebridResponse
-import java.time.Instant
+import io.william.debridav.debrid.DebridFile
 
 data class DebridFileContents(
-        var originalPath: String,
-        var size: Long,
-        var modified: Long,
-        var magnet: String?,
-        var debridLinks: MutableList<DebridLink>
+    var originalPath: String,
+    var size: Long,
+    var modified: Long,
+    var magnet: String,
+    var debridLinks: MutableList<DebridFile>
 ) {
-    fun getProviderLink(provider: DebridProvider): DebridLink? = debridLinks.firstOrNull { it.provider == provider }
+    fun replaceOrAddDebridLink(debridLink: DebridFile) {
+        if (debridLinks.any { link -> link.provider == debridLink.provider }) {
+            val index = debridLinks.indexOfFirst { link -> link.provider == debridLink.provider }
+            debridLinks[index] = debridLink
+        } else {
+            debridLinks.add(debridLink)
+        }
+    }
+
 
     override fun equals(other: Any?): Boolean {
         if (other is DebridFileContents) {

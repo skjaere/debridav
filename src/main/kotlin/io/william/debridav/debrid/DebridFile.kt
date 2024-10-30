@@ -2,6 +2,7 @@ package io.william.debridav.debrid
 
 import io.william.debridav.fs.DebridProvider
 
-sealed interface DebridResponse {
+sealed interface DebridFile {
     val provider: DebridProvider
+    val lastChecked: Long
 }

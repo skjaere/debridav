@@ -7,9 +7,18 @@ import io.milton.resource.DeletableResource
 import io.milton.resource.GetableResource
 import io.william.debridav.StreamingService
 import io.william.debridav.StreamingService.Result.*
+import io.william.debridav.debrid.CachedFile
 import io.william.debridav.debrid.DebridClient
+import io.william.debridav.debrid.DebridService
+import io.william.debridav.debrid.MissingFile
 import io.william.debridav.fs.DebridFileContents
+import io.william.debridav.fs.DebridLink
 import io.william.debridav.fs.FileService
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.flow.transformWhile
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.OutputStream
@@ -17,10 +26,10 @@ import java.time.Instant
 import java.util.*
 
 class DebridFileResource(
-        val file: File,
-        fileService: FileService,
-        private val streamingService: StreamingService,
-        private val debridClient: DebridClient
+    val file: File,
+    fileService: FileService,
+    private val streamingService: StreamingService,
+    private val debridService: DebridService
 ) : AbstractResource(fileService), GetableResource, DeletableResource {
     private val debridFileContents: DebridFileContents = fileService.getDebridFileContents(file)
     private val logger = LoggerFactory.getLogger(DebridClient::class.java)
@@ -55,39 +64,30 @@ class DebridFileResource(
     }
 
     override fun sendContent(
-            out: OutputStream,
-            range: Range?,
-            params: MutableMap<String, String>?,
-            contentType: String?
+        out: OutputStream,
+        range: Range?,
+        params: MutableMap<String, String>?,
+        contentType: String?
     ) {
-        out.use { outputStream ->
-            debridFileContents.getProviderLink(debridClient.getProvider())?.let { debridLink ->
-                val result = streamingService.streamDebridLink(debridLink, range, debridFileContents.size, outputStream)
-                when (result) {
-                    DEAD_LINK -> handleDeadLink(range, debridFileContents.size, outputStream)
-                    ERROR -> handleDeadLink(range, debridFileContents.size, outputStream)
-                    OK -> {}
-                }
-            } ?: run {
-                fileService.addProviderDebridLinkToDebridFile(file)?.let { refreshedContents ->
-                    streamingService.streamDebridLink(refreshedContents.getProviderLink(debridClient.getProvider())!!, range, debridFileContents.size, outputStream)
+        runBlocking {
+            out.use { outputStream ->
+                debridService.getCheckedLinks(file)
+                    .firstOrNull()
+                    ?.let { cachedFile ->
+                        logger.info("streaming: {}",cachedFile)
+                        streamingService.streamDebridLink(
+                            cachedFile,
+                            range,
+                            debridFileContents.size,
+                            outputStream
+                        )
+                    } ?: {
+                    logger.info("No working link found for ${debridFileContents.originalPath}")
                 }
             }
         }
     }
 
-    private fun handleDeadLink(range: Range?, fileSize: Long, out: OutputStream) {
-        fileService.handleDeadLink(file)?.let {
-            if (streamingService.streamDebridLink(
-                    it.getProviderLink(debridClient.getProvider())!!,
-                    range,
-                    fileSize,
-                    out
-            ) != StreamingService.Result.OK) {
-                logger.info("failed to refresh file ${debridFileContents.getProviderLink(debridClient.getProvider())}")
-            }
-        }
-    }
 
     override fun getMaxAgeSeconds(auth: Auth?): Long {
         return 100

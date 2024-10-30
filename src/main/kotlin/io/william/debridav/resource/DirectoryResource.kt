@@ -12,21 +12,9 @@ import java.util.*
 
 class DirectoryResource(
     val directory: File,
+    private val children: List<Resource>,
     fileService: FileService
 ) : AbstractResource(fileService), MakeCollectionableResource, MoveableResource, PutableResource, DeletableResource {
-
-    private var children: List<Resource>? = null
-
-    init {
-        runBlocking {
-            children = directory.listFiles()
-                ?.toList()
-                ?.map { async { fileService.toResource(it) } }
-                ?.awaitAll()
-                ?.filterNotNull()
-                ?: emptyList()
-        }
-    }
 
     override fun getUniqueId(): String {
         return directory.path
@@ -88,4 +76,5 @@ class DirectoryResource(
     override fun createCollection(newName: String?): CollectionResource {
         return fileService.createDirectory("${directory.path}/$newName/")
     }
+
 }

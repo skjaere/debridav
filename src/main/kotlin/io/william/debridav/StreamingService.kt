@@ -1,7 +1,7 @@
 package io.william.debridav
 
 import io.milton.http.Range
-import io.william.debridav.fs.DebridLink
+import io.william.debridav.debrid.CachedFile
 import org.apache.catalina.connector.ClientAbortException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -15,12 +15,12 @@ class StreamingService {
     private val logger = LoggerFactory.getLogger(StreamingService::class.java)
 
     fun streamDebridLink(
-            debridLink: DebridLink,
+            debridLink: CachedFile,
             range: Range?,
             fileSize: Long,
             outputStream: OutputStream
     ): Result {
-        val connection = openConnection(debridLink.link)
+        val connection = openConnection(debridLink.link!!)
         range?.let {
             val byteRange = getByteRange(range, fileSize)
             logger.debug("applying byterange: {}  from {}", byteRange, range)

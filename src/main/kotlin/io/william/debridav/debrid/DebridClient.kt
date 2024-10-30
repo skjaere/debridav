@@ -5,8 +5,8 @@ import org.springframework.stereotype.Component
 
 @Component
 interface DebridClient {
-    fun isCached(magnet: String): Boolean
-    fun getDirectDownloadLink(magnet: String): List<DebridResponse>
-
+    suspend fun isCached(magnet: String): Boolean
+    suspend fun getCachedFiles(magnet: String): List<CachedFile> = getCachedFiles(magnet, emptyMap())
+    suspend fun getCachedFiles(magnet: String, params: Map<String, String>): List<CachedFile>
     fun getProvider(): DebridProvider
 }

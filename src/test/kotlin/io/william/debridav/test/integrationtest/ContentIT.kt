@@ -3,7 +3,7 @@ package io.william.debridav.test.integrationtest
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.william.debridav.DebridApplication
 import io.william.debridav.MiltonConfiguration
-import io.william.debridav.fs.DebridLink
+import io.william.debridav.debrid.CachedFile
 import io.william.debridav.fs.DebridProvider
 import io.william.debridav.test.debridFileContents
 import io.william.debridav.test.integrationtest.config.ContentStubbingService
@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.io.File
+import java.time.Instant
 
 @SpringBootTest(
         classes = [DebridApplication::class, IntegrationTestContextConfiguration::class, MiltonConfiguration::class],
@@ -32,20 +33,27 @@ class ContentIT {
     @Test
     fun contentIsServed() {
         //given
-        contentStubbingService.mockWorkingStream()
-
         val file = File("$BASE_PATH/testfile.mp4.debridfile")
         val fileContents = debridFileContents.copy()
-        fileContents.debridLinks = mutableListOf(
-                DebridLink(DebridProvider.PREMIUMIZE, "http://localhost:${contentStubbingService.port}/workingLink")
-        )
         fileContents.size = "it works!".toByteArray().size.toLong()
+        val debridLink = CachedFile(
+            "testfile.mp4",
+            link = "http://localhost:${contentStubbingService.port}/workingLink",
+            size = "it works!".toByteArray().size.toLong(),
+            provider = DebridProvider.PREMIUMIZE,
+            lastChecked = Instant.now().toEpochMilli(),
+            params = mapOf(),
+            mimeType = "video/mp4"
+        )
+        fileContents.debridLinks = mutableListOf(debridLink)
+        //contentStubbingService.mockIsCached()
+        contentStubbingService.mockWorkingStream()
         file.writeText(jacksonObjectMapper().writeValueAsString(fileContents))
 
         //when / then
         webTestClient
                 .get()
-                .uri("/testfile.mp4")
+                .uri("testfile.mp4")
                 .exchange()
                 .expectStatus().is2xxSuccessful
                 .expectBody(String::class.java)
