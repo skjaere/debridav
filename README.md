@@ -1,5 +1,6 @@
 # DebriDav #
 
+[![build](https://github.com/OWNER/REPOSITORY/actions/workflows/build.yaml/badge.svg)](#)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?logo=springboot&logoColor=fff)](#)
 [![Kotlin](https://img.shields.io/badge/Kotlin-%237F52FF.svg?logo=kotlin&logoColor=white)](#)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff)](#)
