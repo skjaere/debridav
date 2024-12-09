@@ -28,7 +28,11 @@ jobs:
         uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_ORG_TOKEN }}
+      - name: Get next version
+        id: get_next_version
+        uses: thenativeweb/get-next-version@main
       - name: Publish docker image
         env:
           GHCR_TOKEN: '${{ secrets.GHCR_TOKEN }}'
-        run: ./gradlew jib --image ghcr.io/skjaere/debridav:dev-SNAPSHOT
+        run:
+          ./gradlew jib --image ghcr.io/skjaere/debridav:${{ steps.get_next_version.outputs.version }}
