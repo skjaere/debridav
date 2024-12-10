@@ -55,7 +55,6 @@ class ContentIT {
             mimeType = "video/mp4"
         )
         fileContents.debridLinks = mutableListOf(debridLink)
-        // contentStubbingService.mockIsCached()
         contentStubbingService.mockWorkingStream()
         file.writeText(Json.encodeToString(fileContents))
 

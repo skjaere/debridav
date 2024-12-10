@@ -15,15 +15,8 @@ jobs:
         with:
           java-version: '21'
           distribution: 'adopt'
-      - name: Cache Gradle packages
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
       - name: Build with Gradle
         run: ./gradlew build
       - name: Upload coverage to Codecov
@@ -33,6 +26,8 @@ jobs:
       - name: Get next version
         id: get_next_version
         uses: thenativeweb/get-next-version@main
+      - name: Run gradle release task
+        run: ./gradlew release -PreleaseVersion=${{ github.event.inputs.release-version }} -PpostReleaseVersion=${{ github.event.inputs.post-release-version }}
       - name: Publish docker image
         env:
           GHCR_TOKEN: '${{ secrets.GHCR_TOKEN }}'

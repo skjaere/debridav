@@ -15,16 +15,13 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
+import org.springframework.scheduling.annotation.EnableScheduling
 import java.time.Clock
 
 @Configuration
 @ConfigurationPropertiesScan("io.skjaere.debridav")
+@EnableScheduling
 class Configuration {
-
-    companion object {
-        const val CONNECT_TIMEOUT = 1000L
-        const val REQUEST_TIMEOUT = 1000L
-    }
 
     @Bean
     fun miltonFilterFilterRegistrationBean(): FilterRegistrationBean<SpringMiltonFilter> {

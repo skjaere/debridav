@@ -21,7 +21,7 @@ data class DebridavConfiguration(
     val connectTimeoutMilliseconds: Long,
     val readTimeoutMilliseconds: Long,
     val shouldDeleteNonWorkingFiles: Boolean,
-    //val iUnderstandThatByUsingRealDebridIAmPubliclySharingWhatIStream: Boolean
+    val torrentLifetime: Duration,
 ) {
     init {
         require(debridClients.isNotEmpty()) {

@@ -64,8 +64,8 @@ class DebridServiceTest {
         readTimeoutMilliseconds = 1000,
         connectTimeoutMilliseconds = 1000,
         waitAfterClientError = Duration.ofMillis(1000),
-        shouldDeleteNonWorkingFiles = true/*,
-        iUnderstandThatByUsingRealDebridIAmPubliclySharingWhatIStream = true,*/
+        shouldDeleteNonWorkingFiles = true,
+        torrentLifetime = Duration.ofMinutes(1)
     )
     private var file: File? = null
 
