@@ -260,7 +260,7 @@ class DebridProviderErrorHandlingIT {
         file.parentFile.mkdirs()
         file.createNewFile()
         debridavConfiguration.debridClients = listOf(DebridProvider.PREMIUMIZE)
-        //every { debridavConfiguration.debridClients } returns listOf(DebridProvider.PREMIUMIZE)
+        premiumizeStubbingService.stubNoCachedFilesDirectDl()
 
         val staleDebridFileContents = debridFileContents.deepCopy()
         staleDebridFileContents.debridLinks = mutableListOf(

@@ -1,6 +1,7 @@
 package io.skjaere.debridav
 
 import io.milton.http.Range
+import io.skjaere.debridav.configuration.DebridavConfiguration
 import io.skjaere.debridav.debrid.model.CachedFile
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -14,9 +15,13 @@ import java.net.HttpURLConnection
 import java.net.URI
 
 @Service
-class StreamingService {
+class StreamingService(
+    private val throttlingService: ThrottlingService,
+    private val debridavConfiguration: DebridavConfiguration
+) {
     companion object {
         val OK_RESPONSE_RANGE = 200..299
+
     }
 
     private val logger = LoggerFactory.getLogger(StreamingService::class.java)
@@ -27,30 +32,42 @@ class StreamingService {
         fileSize: Long,
         outputStream: OutputStream
     ): Result {
-        val connection = openConnection(debridLink.link!!)
-        range?.let {
-            val byteRange = getByteRange(range, fileSize)
-            logger.debug("applying byterange: {}  from {}", byteRange, range)
-            connection.setRequestProperty("Range", byteRange)
+        return throttlingService.throttle(
+            debridLink.provider.toString(),
+            debridavConfiguration.waitBeforeStartStream.toMillis()
+        ) {
+            val connection = openConnection(debridLink.link!!)
+
+            range?.let {
+                val byteRange = getByteRange(range, fileSize)
+                logger.info("applying byterange: {}  from {}", byteRange, range)
+                connection.setRequestProperty("Range", byteRange)
+            }
+            val result = flow {
+                if (connection.responseCode.isNotOk()) {
+                    logger.error(
+                        "Got response: ${connection.responseCode} from $debridLink with body: ${
+                            connection.inputStream?.bufferedReader()?.readText() ?: ""
+                        }"
+                    )
+                    emit(Result.DEAD_LINK)
+                }
+                connection.inputStream.use { inputStream ->
+                    outputStream.use { usableOutputStream ->
+                        logger.info("Begin streaming of {}", debridLink)
+                        inputStream.transferTo(usableOutputStream)
+
+                        emit(Result.OK)
+                    }
+                }
+            }.catch {
+                emit(mapExceptionToResult(it))
+            }.first()
+            logger.debug("Streaming of {} complete", debridLink.path.split("/").last())
+            logger.debug("Streaming result of {} was {}", debridLink.path, result)
+            result
         }
-        return flow {
-            if (connection.responseCode.isNotOk()) {
-                logger.error(
-                    "Got response: ${connection.responseCode} from $debridLink with body: ${
-                        connection.inputStream?.bufferedReader()?.readText() ?: ""
-                    }"
-                )
-                emit(Result.DEAD_LINK)
-            }
-            connection.inputStream.use { inputStream ->
-                logger.debug("Begin streaming of {}", debridLink)
-                inputStream.transferTo(outputStream)
-                logger.debug("Streaming of {} complete", debridLink)
-                emit(Result.OK)
-            }
-        }.catch {
-            emit(mapExceptionToResult(it))
-        }.first()
+
     }
 
     private fun mapExceptionToResult(e: Throwable): Result {

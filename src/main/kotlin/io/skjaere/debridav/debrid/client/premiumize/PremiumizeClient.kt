@@ -7,12 +7,10 @@ import io.ktor.client.request.post
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headers
-import io.skjaere.debridav.debrid.DebridClient
-import io.skjaere.debridav.debrid.model.CachedFile
+import io.skjaere.debridav.debrid.client.DebridClient
 import io.skjaere.debridav.debrid.client.premiumize.model.CacheCheckResponse
-import io.skjaere.debridav.debrid.client.premiumize.model.DirectDownloadResponse
 import io.skjaere.debridav.debrid.client.premiumize.model.SuccessfulDirectDownloadResponse
-import io.skjaere.debridav.debrid.client.premiumize.model.UnsuccessfulDirectDownloadResponse
+import io.skjaere.debridav.debrid.model.CachedFile
 import io.skjaere.debridav.fs.DebridProvider
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
@@ -52,10 +50,25 @@ class PremiumizeClient(
 
     @Suppress("MaxLineLength")
     override suspend fun getCachedFiles(magnet: String, params: Map<String, String>): List<CachedFile> {
+        val resp = getDirectDlResponse(magnet)
+
+        return getCachedFilesFromResponse(resp)
+    }
+
+    override suspend fun getStreamableLink(magnet: String, cachedFile: CachedFile): String? =
+        getDirectDlResponse(magnet)
+            .content
+            .firstOrNull { it.path == cachedFile.path }
+            ?.link
+
+
+    private suspend fun getDirectDlResponse(magnet: String): SuccessfulDirectDownloadResponse {
         logger.info("getting cached files from premiumize")
         val resp =
             httpClient.post(
-                "${premiumizeConfiguration.baseUrl}/transfer/directdl?apikey=${premiumizeConfiguration.apiKey}&src=$magnet"
+                "${premiumizeConfiguration.baseUrl}/transfer/directdl" +
+                        "?apikey=${premiumizeConfiguration.apiKey}" +
+                        "&src=$magnet"
             ) {
                 headers {
                     set(HttpHeaders.ContentType, "multipart/form-data")
@@ -65,8 +78,7 @@ class PremiumizeClient(
         if (resp.status != HttpStatusCode.OK) {
             throwDebridProviderException(resp)
         }
-
-        return getCachedFilesFromResponse(resp.body<SuccessfulDirectDownloadResponse>())
+        return resp.body<SuccessfulDirectDownloadResponse>()
     }
 
     private fun getCachedFilesFromResponse(resp: SuccessfulDirectDownloadResponse) =

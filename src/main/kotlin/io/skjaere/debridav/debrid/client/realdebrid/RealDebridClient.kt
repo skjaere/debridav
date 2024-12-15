@@ -13,7 +13,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.headers
-import io.skjaere.debridav.debrid.DebridClient
+import io.skjaere.debridav.debrid.client.DebridClient
 import io.skjaere.debridav.debrid.client.realdebrid.model.HostedFile
 import io.skjaere.debridav.debrid.client.realdebrid.model.Torrent
 import io.skjaere.debridav.debrid.client.realdebrid.model.TorrentsInfo
@@ -44,7 +44,7 @@ class RealDebridClient(
     }
 
     override suspend fun isCached(magnet: String): Boolean = coroutineScope {
-        true
+        true // Real Debrid has removed this functionality from their API
     }
 
     override suspend fun getCachedFiles(magnet: String, params: Map<String, String>): List<CachedFile> {
@@ -55,6 +55,10 @@ class RealDebridClient(
             logger.info("getting cached files from real debrid")
             return getCachedFilesFromTorrentId(addMagnet(magnet).id)
         }
+    }
+
+    override suspend fun getStreamableLink(magnet: String, cachedFile: CachedFile): String? {
+        return unrestrictLink(cachedFile.params["link"]!!).download
     }
 
     private suspend fun getCachedFilesFromTorrentId(torrentId: String): List<CachedFile> {
@@ -90,7 +94,7 @@ class RealDebridClient(
                         Instant.now().toEpochMilli(),
                         mapOf(
                             "torrentId" to torrentId,
-                            "fileId" to unrestrictedLink.id
+                            "link" to unrestrictedLink.link
                         )
                     )
                 }

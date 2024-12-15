@@ -110,6 +110,32 @@ class PremiumizeStubbingService(
         )
     }
 
+    fun stubNoCachedFilesDirectDl() {
+
+        val response = SuccessfulDirectDownloadResponse(
+            status = "success",
+            location = "",
+            filename = "",
+            filesize = 0,
+            content = emptyList()
+        )
+        MockServerClient(
+            "localhost",
+            port
+        ).`when`(
+            HttpRequest.request()
+                .withMethod("POST")
+                .withPath(
+                    "/premiumize/transfer/directdl"
+                )
+        ).respond(
+            HttpResponse.response()
+                .withStatusCode(200)
+                .withContentType(MediaType.APPLICATION_JSON)
+                .withBody(Json.encodeToString(response))
+        )
+    }
+
     fun mock503ResponseCachedContents() {
         MockServerClient(
             "localhost",
