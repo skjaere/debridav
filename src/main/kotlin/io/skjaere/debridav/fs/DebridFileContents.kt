@@ -23,9 +23,9 @@ data class DebridFileContents(
     override fun equals(other: Any?): Boolean {
         if (other is DebridFileContents) {
             return originalPath == other.originalPath &&
-                size == other.size &&
-                magnet == other.magnet &&
-                debridLinks == other.debridLinks
+                    size == other.size &&
+                    magnet == other.magnet &&
+                    debridLinks == other.debridLinks
         }
 
         return super.equals(other)
@@ -41,4 +41,4 @@ data class DebridFileContents(
     }
 }
 
-enum class DebridProvider { REAL_DEBRID, PREMIUMIZE }
+enum class DebridProvider { REAL_DEBRID, PREMIUMIZE, TORBOX }
