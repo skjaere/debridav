@@ -2,7 +2,7 @@ package io.skjaere.debridav.debrid
 
 import io.skjaere.debridav.LinkCheckService
 import io.skjaere.debridav.configuration.DebridavConfiguration
-import io.skjaere.debridav.debrid.client.DebridClient
+import io.skjaere.debridav.debrid.client.DebridTorrentClient
 import io.skjaere.debridav.debrid.client.model.ClientErrorGetCachedFilesResponse
 import io.skjaere.debridav.debrid.client.model.GetCachedFilesResponse
 import io.skjaere.debridav.debrid.client.model.NetworkErrorGetCachedFilesResponse
@@ -37,7 +37,7 @@ class DebridLinkService(
     private val linkCheckService: LinkCheckService,
     private val fileService: FileService,
     private val debridavConfiguration: DebridavConfiguration,
-    private val debridClients: List<DebridClient>,
+    private val debridClients: List<DebridTorrentClient>,
     private val clock: Clock
 ) {
     private val logger = LoggerFactory.getLogger(DebridLinkService::class.java)
@@ -68,7 +68,7 @@ class DebridLinkService(
 
     private suspend fun getFreshDebridLink(
         debridFileContents: DebridFileContents,
-        debridClient: DebridClient
+        debridClient: DebridTorrentClient
     ): DebridFile {
         return debridFileContents.debridLinks
             .firstOrNull { it.provider == debridClient.getProvider() }
@@ -94,7 +94,7 @@ class DebridLinkService(
     private fun mapResponseToDebridFile(
         response: GetCachedFilesResponse,
         debridFileContents: DebridFileContents,
-        debridClient: DebridClient
+        debridClient: DebridTorrentClient
     ) = when (response) {
         is SuccessfulGetCachedFilesResponse -> response.getCachedFiles()
             .first { fileMatches(it, debridFileContents) }

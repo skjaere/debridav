@@ -10,7 +10,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.headers
 import io.ktor.http.isSuccess
 import io.ktor.http.parameters
-import io.skjaere.debridav.debrid.client.DebridClient
+import io.skjaere.debridav.debrid.client.DebridTorrentClient
 import io.skjaere.debridav.debrid.client.realdebrid.MagnetParser.getHashFromMagnet
 import io.skjaere.debridav.debrid.client.torbox.model.torrent.CreateTorrentResponse
 import io.skjaere.debridav.debrid.client.torbox.model.torrent.DownloadLinkResponse
@@ -26,21 +26,20 @@ import java.time.Instant
 
 @Component
 @ConditionalOnExpression("#{'\${debridav.debrid-clients}'.contains('torbox')}")
-class TorBoxClient(
-    private val httpClient: HttpClient,
-    private val torBoxConfiguration: TorBoxConfiguration
-) : DebridClient {
+class TorBoxTorrentClient(
+    private val httpClient: HttpClient, private val torBoxConfiguration: TorBoxConfiguration
+) : DebridTorrentClient {
 
     companion object {
         const val TORRENT_ID_KEY = "torrent_id"
         const val TORRENT_FILE_ID_KEY = "file_id"
     }
 
-    private val logger = LoggerFactory.getLogger(TorBoxClient::class.java)
+    private val logger = LoggerFactory.getLogger(TorBoxTorrentClient::class.java)
 
     override suspend fun isCached(magnet: String): Boolean {
         val hash = getHashFromMagnet(magnet)
-        val response = httpClient.get("${getBaseUrl()}/api/torrents/checkcached?hash=$hash") {
+        val response = httpClient.get("${torBoxConfiguration.apiUrl}/api/torrents/checkcached?hash=$hash") {
             headers {
                 accept(ContentType.Application.Json)
                 bearerAuth(torBoxConfiguration.apiKey)
@@ -66,14 +65,12 @@ class TorBoxClient(
 
     override suspend fun getStreamableLink(magnet: String, cachedFile: CachedFile): String? {
         return getDownloadLinkFromTorrentAndFile(
-            cachedFile.params[TORRENT_ID_KEY]!!,
-            cachedFile.params[TORRENT_FILE_ID_KEY]!!
+            cachedFile.params[TORRENT_ID_KEY]!!, cachedFile.params[TORRENT_FILE_ID_KEY]!!
         )
     }
 
-
     private suspend fun getCachedFilesFromTorrentId(torrentId: String): List<CachedFile> {
-        val response = httpClient.get("${getBaseUrl()}/api/torrents/mylist?id=$torrentId") {
+        val response = httpClient.get("${torBoxConfiguration.apiUrl}/api/torrents/mylist?id=$torrentId") {
             headers {
                 accept(ContentType.Application.Json)
                 bearerAuth(torBoxConfiguration.apiKey)
@@ -81,9 +78,7 @@ class TorBoxClient(
         }
         if (response.status.isSuccess()) {
             val torrent = response.body<TorrentListResponse>().data ?: return emptyList()
-            return torrent.files
-                ?.map { it.toCachedFile(torrentId) }
-                ?: emptyList()
+            return torrent.files?.map { it.toCachedFile(torrentId) } ?: emptyList()
         } else {
             throwDebridProviderException(response)
         }
@@ -97,18 +92,14 @@ class TorBoxClient(
         lastChecked = Instant.now().toEpochMilli(),
         link = getDownloadLinkFromTorrentAndFile(torrentId, this.id),
         params = mapOf(
-            TORRENT_ID_KEY to torrentId,
-            TORRENT_FILE_ID_KEY to this.id
+            TORRENT_ID_KEY to torrentId, TORRENT_FILE_ID_KEY to this.id
         )
 
     )
 
     private suspend fun getDownloadLinkFromTorrentAndFile(torrentId: String, fileId: String): String {
         val response = httpClient.get(
-            "${getBaseUrl()}/api/torrents/requestdl" +
-                    "?token=${torBoxConfiguration.apiKey}" +
-                    "&torrent_id=$torrentId" +
-                    "&file_id=$fileId"
+            "${torBoxConfiguration.apiUrl}/api/torrents/requestdl" + "?token=${torBoxConfiguration.apiKey}" + "&torrent_id=$torrentId" + "&file_id=$fileId"
         ) {
             headers {
                 accept(ContentType.Application.Json)
@@ -124,13 +115,11 @@ class TorBoxClient(
 
     private suspend fun addMagnet(magnet: String): String {
         val response = httpClient.submitForm(
-            url = "${getBaseUrl()}/api/torrents/createtorrent",
-            formParameters = parameters {
+            url = "${torBoxConfiguration.apiUrl}/api/torrents/createtorrent", formParameters = parameters {
                 append("magnet", magnet)
                 append("seed", "3")
                 append("as_queued", "false")
-            }
-        ) {
+            }) {
             headers {
                 accept(ContentType.Application.Json)
                 bearerAuth(torBoxConfiguration.apiKey)
@@ -146,6 +135,4 @@ class TorBoxClient(
     override fun getProvider(): DebridProvider {
         return DebridProvider.TORBOX
     }
-
-    private fun getBaseUrl(): String = "${torBoxConfiguration.baseUrl}/${torBoxConfiguration.version}"
 }

@@ -12,7 +12,7 @@ import io.skjaere.debridav.fs.DebridProvider
 import org.springframework.stereotype.Component
 
 @Component
-interface DebridClient {
+interface DebridTorrentClient {
     @Throws(IOException::class)
     suspend fun isCached(magnet: String): Boolean
 

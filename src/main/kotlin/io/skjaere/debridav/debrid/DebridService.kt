@@ -3,7 +3,7 @@ package io.skjaere.debridav.debrid
 
 import io.ktor.utils.io.errors.IOException
 import io.skjaere.debridav.configuration.DebridavConfiguration
-import io.skjaere.debridav.debrid.client.DebridClient
+import io.skjaere.debridav.debrid.client.DebridTorrentClient
 import io.skjaere.debridav.debrid.client.model.ClientErrorGetCachedFilesResponse
 import io.skjaere.debridav.debrid.client.model.GetCachedFilesResponse
 import io.skjaere.debridav.debrid.client.model.NetworkErrorGetCachedFilesResponse
@@ -48,7 +48,7 @@ import java.time.Instant
 @Service
 @Suppress("TooManyFunctions")
 class DebridService(
-    private val debridClients: List<DebridClient>,
+    private val debridClients: List<DebridTorrentClient>,
     private val debridavConfiguration: DebridavConfiguration,
     private val clock: Clock
 ) {
@@ -184,7 +184,7 @@ class DebridService(
 
     suspend fun getCachedFiles(
         magnet: String,
-        debridClients: List<DebridClient>
+        debridClients: List<DebridTorrentClient>
     ): Flow<GetCachedFilesResponse> = coroutineScope {
         debridClients
             .map { provider ->
@@ -195,7 +195,7 @@ class DebridService(
 
     private suspend fun getCachedFilesResponseWithRetries(
         magnet: String,
-        debridClient: DebridClient
+        debridClient: DebridTorrentClient
     ) = tryGetCachedFiles(debridClient, magnet)
         .retry(debridavConfiguration.retriesOnProviderError) { e ->
             (e.isRetryable()).also { if (it) delay(debridavConfiguration.delayBetweenRetries.toMillis()) }
@@ -219,7 +219,7 @@ class DebridService(
     }
 
     private suspend fun tryGetCachedFiles(
-        debridClient: DebridClient,
+        debridClient: DebridTorrentClient,
         magnet: String
     ): Flow<GetCachedFilesResponse> = flow {
         debridClient.getCachedFiles(magnet).let {
@@ -232,7 +232,7 @@ class DebridService(
     }
 }
 
-fun List<DebridClient>.getClient(debridProvider: DebridProvider): DebridClient =
+fun List<DebridTorrentClient>.getClient(debridProvider: DebridProvider): DebridTorrentClient =
     this.first { it.getProvider() == debridProvider }
 
 typealias GetCachedFilesResponses = List<GetCachedFilesResponse>

@@ -8,7 +8,7 @@ import io.milton.resource.GetableResource
 import io.skjaere.debridav.StreamingService
 import io.skjaere.debridav.configuration.DebridavConfiguration
 import io.skjaere.debridav.debrid.DebridLinkService
-import io.skjaere.debridav.debrid.client.DebridClient
+import io.skjaere.debridav.debrid.client.DebridTorrentClient
 import io.skjaere.debridav.debrid.model.MissingFile
 import io.skjaere.debridav.fs.DebridFileContents
 import io.skjaere.debridav.fs.FileService
@@ -29,7 +29,7 @@ class DebridFileResource(
     private val debridavConfiguration: DebridavConfiguration
 ) : AbstractResource(fileService), GetableResource, DeletableResource {
     private val debridFileContents: DebridFileContents = fileService.getDebridFileContents(file)
-    private val logger = LoggerFactory.getLogger(DebridClient::class.java)
+    private val logger = LoggerFactory.getLogger(DebridTorrentClient::class.java)
 
     override fun getUniqueId(): String {
         return file.name
