@@ -4,7 +4,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.skjaere.debridav.DebriDavApplication
 import io.skjaere.debridav.MiltonConfiguration
 import io.skjaere.debridav.debrid.model.CachedFile
-import io.skjaere.debridav.fs.DebridFileContents
+import io.skjaere.debridav.fs.DebridTorrentFileContents
 import io.skjaere.debridav.test.MAGNET
 import io.skjaere.debridav.test.integrationtest.config.IntegrationTestContextConfiguration
 import io.skjaere.debridav.test.integrationtest.config.MockServerTest
@@ -107,7 +107,7 @@ class TorrentEmulationIT {
             .exchange()
             .expectStatus().is2xxSuccessful
         val debridFile = File("/tmp/debridavtests/downloads/test/a/b/c/movie.mkv.debridfile")
-        val debridFileContents: DebridFileContents = Json.decodeFromString(debridFile.readText())
+        val debridFileContents: DebridTorrentFileContents = Json.decodeFromString(debridFile.readText())
 
         // then
         assertTrue(debridFile.exists())

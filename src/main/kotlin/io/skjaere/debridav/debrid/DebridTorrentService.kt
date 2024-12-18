@@ -25,8 +25,8 @@ import io.skjaere.debridav.debrid.model.ProviderError
 import io.skjaere.debridav.debrid.model.ProviderErrorIsCachedResponse
 import io.skjaere.debridav.debrid.model.SuccessfulIsCachedResult
 import io.skjaere.debridav.debrid.model.UnknownDebridError
-import io.skjaere.debridav.fs.DebridFileContents
 import io.skjaere.debridav.fs.DebridProvider
+import io.skjaere.debridav.fs.DebridTorrentFileContents
 import io.skjaere.debridav.qbittorrent.TorrentService
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -47,14 +47,14 @@ import java.time.Instant
 
 @Service
 @Suppress("TooManyFunctions")
-class DebridService(
+class DebridTorrentService(
     private val debridClients: List<DebridTorrentClient>,
     private val debridavConfiguration: DebridavConfiguration,
     private val clock: Clock
 ) {
-    private val logger = LoggerFactory.getLogger(DebridService::class.java)
+    private val logger = LoggerFactory.getLogger(DebridTorrentService::class.java)
 
-    suspend fun addMagnet(magnet: String): List<DebridFileContents> = coroutineScope {
+    suspend fun addMagnet(magnet: String): List<DebridTorrentFileContents> = coroutineScope {
         isCached(magnet).let { isCachedResponse ->
             if (isCachedResponse.all { it is SuccessfulIsCachedResult && !it.isCached }) {
                 listOf()
@@ -118,7 +118,7 @@ class DebridService(
             "Received response: ${e.message} " +
                     "with status: ${e.statusCode} " +
                     "on endpoint: ${e.endpoint} " +
-                    "while processing torrent:$magnetName"
+                    "while processing debridFile:${magnetName}"
         )
         return when (e) {
             is DebridClientError -> ClientErrorIsCachedResponse(e, debridProvider)
@@ -130,7 +130,7 @@ class DebridService(
     }
 
 
-    fun GetCachedFilesResponses.getDebridFileContents(magnet: String): List<DebridFileContents> = this
+    fun GetCachedFilesResponses.getDebridFileContents(magnet: String): List<DebridTorrentFileContents> = this
         .getDistinctFiles()
         .map { filePath ->
             debridavConfiguration.debridClients.mapNotNull { provider ->
@@ -174,7 +174,7 @@ class DebridService(
     private fun createDebridFileContents(
         cachedFiles: List<DebridFile>,
         magnet: String
-    ) = DebridFileContents(
+    ) = DebridTorrentFileContents(
         originalPath = cachedFiles.first { it is CachedFile }.let { (it as CachedFile).path },
         size = cachedFiles.first { it is CachedFile }.let { (it as CachedFile).size },
         modified = Instant.now(clock).toEpochMilli(),

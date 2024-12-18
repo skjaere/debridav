@@ -2,13 +2,13 @@ package io.skjaere.debridav.debrid.client
 
 import io.skjaere.debridav.debrid.client.torbox.model.usenet.CreateUsenetDownloadResponse
 import io.skjaere.debridav.debrid.client.torbox.model.usenet.GetUsenetListItem
-import io.skjaere.debridav.fs.DebridProvider
 import org.springframework.web.multipart.MultipartFile
 
-interface DebridUsenetClient {
+interface DebridUsenetClient : DebridClient {
     suspend fun addNzb(nzbFile: MultipartFile): CreateUsenetDownloadResponse
 
-    suspend fun getDownloads(ids: List<String>): List<GetUsenetListItem>
+    suspend fun getDownloads(ids: List<Int>): List<GetUsenetListItem>
 
-    fun getProvider(): DebridProvider
+    suspend fun getStreamableLink(downloadId: Int, downloadFileId: String): String?
+
 }

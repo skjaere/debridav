@@ -32,7 +32,7 @@ data class ListResponseDownloadSlot(
     val status: String,
     val index: Int,
     val password: String,
-    @SerialName("avg_size") val avgSize: String,
+    @SerialName("avg_age") val avgAge: String,
     val script: String,
     @SerialName("direct_unpack") val directUnpack: String,
     val mb: String,

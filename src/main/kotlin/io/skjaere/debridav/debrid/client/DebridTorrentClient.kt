@@ -8,23 +8,18 @@ import io.skjaere.debridav.debrid.model.CachedFile
 import io.skjaere.debridav.debrid.model.DebridClientError
 import io.skjaere.debridav.debrid.model.DebridProviderError
 import io.skjaere.debridav.debrid.model.UnknownDebridError
-import io.skjaere.debridav.fs.DebridProvider
 import org.springframework.stereotype.Component
 
 @Component
-interface DebridTorrentClient {
+interface DebridTorrentClient : DebridClient {
     @Throws(IOException::class)
     suspend fun isCached(magnet: String): Boolean
 
-    @Throws(IOException::class)
-    suspend fun getCachedFiles(magnet: String): List<CachedFile> = getCachedFiles(magnet, emptyMap())
-
-    @Throws(IOException::class)
     suspend fun getCachedFiles(magnet: String, params: Map<String, String>): List<CachedFile>
 
-    suspend fun getStreamableLink(magnet: String, cachedFile: CachedFile): String?
+    suspend fun getCachedFiles(magnet: String): List<CachedFile> = getCachedFiles(magnet, emptyMap())
 
-    fun getProvider(): DebridProvider
+    suspend fun getStreamableLink(magnet: String, cachedFile: CachedFile): String?
 
     @Suppress("ThrowsCount", "MagicNumber")
     suspend fun throwDebridProviderException(resp: HttpResponse): Nothing {

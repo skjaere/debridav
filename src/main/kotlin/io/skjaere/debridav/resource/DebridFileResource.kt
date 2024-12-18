@@ -11,6 +11,7 @@ import io.skjaere.debridav.debrid.DebridLinkService
 import io.skjaere.debridav.debrid.client.DebridTorrentClient
 import io.skjaere.debridav.debrid.model.MissingFile
 import io.skjaere.debridav.fs.DebridFileContents
+import io.skjaere.debridav.fs.DebridTorrentFileContents
 import io.skjaere.debridav.fs.FileService
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
@@ -89,7 +90,7 @@ class DebridFileResource(
     }
 
     private fun File.isNoLongerCached() = Json
-        .decodeFromString<DebridFileContents>(this.readText(charset = Charsets.UTF_8))
+        .decodeFromString<DebridTorrentFileContents>(this.readText(charset = Charsets.UTF_8))
         .debridLinks
         .filter { it.provider in debridavConfiguration.debridClients }
         .all { it is MissingFile }

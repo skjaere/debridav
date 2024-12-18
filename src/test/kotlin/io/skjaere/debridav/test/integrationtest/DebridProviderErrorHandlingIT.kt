@@ -10,8 +10,8 @@ import io.skjaere.debridav.debrid.model.CachedFile
 import io.skjaere.debridav.debrid.model.ClientError
 import io.skjaere.debridav.debrid.model.NetworkError
 import io.skjaere.debridav.debrid.model.ProviderError
-import io.skjaere.debridav.fs.DebridFileContents
 import io.skjaere.debridav.fs.DebridProvider
+import io.skjaere.debridav.fs.DebridTorrentFileContents
 import io.skjaere.debridav.test.MAGNET
 import io.skjaere.debridav.test.debridFileContents
 import io.skjaere.debridav.test.integrationtest.config.ContentStubbingService
@@ -112,13 +112,13 @@ class DebridProviderErrorHandlingIT {
             .exchange()
             .expectStatus().is2xxSuccessful
 
-        val fileContents: DebridFileContents = Json.decodeFromString(
+        val fileContents: DebridTorrentFileContents = Json.decodeFromString(
             File("/tmp/debridavtests/downloads/test/a/b/c/movie.mkv.debridfile").readText()
         )
 
         kotlin.test.assertEquals(
             fileContents,
-            DebridFileContents(
+            DebridTorrentFileContents(
                 originalPath = "a/b/c/movie.mkv",
                 size = 100000000,
                 modified = 0,
@@ -171,13 +171,13 @@ class DebridProviderErrorHandlingIT {
             .exchange()
             .expectStatus().is2xxSuccessful
 
-        val fileContents: DebridFileContents = Json.decodeFromString(
+        val fileContents: DebridTorrentFileContents = Json.decodeFromString(
             File("/tmp/debridavtests/downloads/test/a/b/c/movie.mkv.debridfile").readText()
         )
 
         kotlin.test.assertEquals(
             fileContents,
-            DebridFileContents(
+            DebridTorrentFileContents(
                 originalPath = "a/b/c/movie.mkv",
                 size = 100000000,
                 modified = 0,
@@ -223,13 +223,13 @@ class DebridProviderErrorHandlingIT {
             .exchange()
             .expectStatus().is2xxSuccessful
 
-        val fileContents: DebridFileContents = Json.decodeFromString(
+        val fileContents: DebridTorrentFileContents = Json.decodeFromString(
             File("/tmp/debridavtests/downloads/test/a/b/c/movie.mkv.debridfile").readText()
         )
 
         kotlin.test.assertEquals(
             fileContents,
-            DebridFileContents(
+            DebridTorrentFileContents(
                 originalPath = "a/b/c/movie.mkv",
                 size = 100000000,
                 modified = 0,
@@ -295,9 +295,9 @@ class DebridProviderErrorHandlingIT {
         debridavConfiguration.debridClients = listOf(DebridProvider.REAL_DEBRID, DebridProvider.PREMIUMIZE)
     }
 
-    private fun DebridFileContents.deepCopy() =
-        Json.decodeFromString<DebridFileContents>(
-            Json.encodeToString(DebridFileContents.serializer(), this)
+    private fun DebridTorrentFileContents.deepCopy() =
+        Json.decodeFromString<DebridTorrentFileContents>(
+            Json.encodeToString(DebridTorrentFileContents.serializer(), this)
         )
 }
 

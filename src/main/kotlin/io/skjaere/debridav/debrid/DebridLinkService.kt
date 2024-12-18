@@ -2,7 +2,9 @@ package io.skjaere.debridav.debrid
 
 import io.skjaere.debridav.LinkCheckService
 import io.skjaere.debridav.configuration.DebridavConfiguration
+import io.skjaere.debridav.debrid.client.DebridClient
 import io.skjaere.debridav.debrid.client.DebridTorrentClient
+import io.skjaere.debridav.debrid.client.DebridUsenetClient
 import io.skjaere.debridav.debrid.client.model.ClientErrorGetCachedFilesResponse
 import io.skjaere.debridav.debrid.client.model.GetCachedFilesResponse
 import io.skjaere.debridav.debrid.client.model.NetworkErrorGetCachedFilesResponse
@@ -12,11 +14,14 @@ import io.skjaere.debridav.debrid.client.model.SuccessfulGetCachedFilesResponse
 import io.skjaere.debridav.debrid.model.CachedFile
 import io.skjaere.debridav.debrid.model.ClientError
 import io.skjaere.debridav.debrid.model.DebridFile
+import io.skjaere.debridav.debrid.model.LinkNotSupportedByClient
 import io.skjaere.debridav.debrid.model.MissingFile
 import io.skjaere.debridav.debrid.model.NetworkError
 import io.skjaere.debridav.debrid.model.ProviderError
 import io.skjaere.debridav.fs.DebridFileContents
 import io.skjaere.debridav.fs.DebridProvider
+import io.skjaere.debridav.fs.DebridTorrentFileContents
+import io.skjaere.debridav.fs.DebridUsenetFileContents
 import io.skjaere.debridav.fs.FileService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
@@ -33,12 +38,13 @@ import java.time.Instant
 
 @Service
 class DebridLinkService(
-    private val debridService: DebridService,
+    private val debridTorrentService: DebridTorrentService,
     private val linkCheckService: LinkCheckService,
     private val fileService: FileService,
     private val debridavConfiguration: DebridavConfiguration,
-    private val debridClients: List<DebridTorrentClient>,
-    private val clock: Clock
+    private val debridClients: List<DebridClient>,
+    private val clock: Clock,
+    private val debridLinkUsenetService: DebridLinkUsenetService
 ) {
     private val logger = LoggerFactory.getLogger(DebridLinkService::class.java)
 
@@ -47,7 +53,7 @@ class DebridLinkService(
         return getFlowOfDebridLinks(debridFileContents)
             .catch { e -> logger.error("Uncaught exception encountered while getting links", e) }
             .transformWhile { debridLink ->
-                if (debridLink !is NetworkError) {
+                if (debridLink !is NetworkError && debridLink !is LinkNotSupportedByClient) {
                     updateContentsOfDebridFile(debridFileContents, debridLink, file)
                 }
                 if (debridLink is CachedFile) {
@@ -58,18 +64,66 @@ class DebridLinkService(
     }
 
     private suspend fun getFlowOfDebridLinks(debridFileContents: DebridFileContents): Flow<DebridFile> = flow {
-        debridavConfiguration.debridClients.map { debridProvider ->
-            debridFileContents.debridLinks
-                .firstOrNull { it.provider == debridProvider }
-                ?.let { debridFile -> emitDebridFile(debridFile, debridFileContents, debridProvider) }
-                ?: run { emit(getFreshDebridLink(debridFileContents, debridClients.getClient(debridProvider))) }
-        }
+        debridavConfiguration.debridClients
+            .map { debridClients.getClient(it) }
+            .filterIsInstance<DebridTorrentClient>()
+            .map { debridClient ->
+                debridFileContents.debridLinks
+                    .firstOrNull { it.provider == debridClient.getProvider() }
+                    ?.let { debridFile ->
+                        emitDebridFile(
+                            debridFile,
+                            debridFileContents,
+                            debridClient.getProvider()
+                        )
+                    } ?: run { emit(getFreshDebridLink(debridFileContents, debridClient)) }
+            }
+        /*when (debridFileContents) {
+            is DebridTorrentFileContents -> {
+
+            }
+
+            is DebridUsenetFileContents -> {
+                debridavConfiguration.debridClients
+                    .map { debridClients.getClient(it) }
+                    .filterIsInstance<DebridUsenetClient>()
+                    .map { debridClient ->
+                        debridFileContents.debridLinks
+                            .firstOrNull { it.provider == debridClient.getProvider() }
+                            ?.let { debridFile ->
+                                emitDebridFile(
+                                    debridFile,
+                                    debridFileContents,
+                                    debridClient.getProvider()
+                                )
+                            } ?: run { emit(getFreshDebridLink(debridFileContents, debridClient)) }
+                    }
+            }
+        }*/
     }
 
     private suspend fun getFreshDebridLink(
         debridFileContents: DebridFileContents,
+        debridClient: DebridClient
+    ): DebridFile {
+        return when (debridFileContents) {
+            is DebridTorrentFileContents -> getFreshDebridTorrentLink(
+                debridFileContents,
+                debridClient as DebridTorrentClient
+            )
+
+            is DebridUsenetFileContents -> debridLinkUsenetService.getFreshDebridLinkFromUsenet(
+                debridFileContents,
+                debridClients.getClient(DebridProvider.TORBOX) as DebridUsenetClient
+            )
+        }
+    }
+
+    private suspend fun getFreshDebridTorrentLink(
+        debridFileContents: DebridTorrentFileContents,
         debridClient: DebridTorrentClient
     ): DebridFile {
+
         return debridFileContents.debridLinks
             .firstOrNull { it.provider == debridClient.getProvider() }
             ?.let { debridFile ->
@@ -81,7 +135,7 @@ class DebridLinkService(
                 } else null
             } ?: run {
             if (debridClient.isCached(debridFileContents.magnet)) {
-                return debridService.getCachedFiles(debridFileContents.magnet, listOf(debridClient))
+                return debridTorrentService.getCachedFiles(debridFileContents.magnet, listOf(debridClient))
                     .map { response ->
                         mapResponseToDebridFile(response, debridFileContents, debridClient)
                     }.first()
@@ -90,6 +144,21 @@ class DebridLinkService(
             }
         }
     }
+    
+
+    /*    private fun getFreshDebridLinkFromUsenet(
+            debridFileContents: DebridUsenetFileContents,
+            debridClient: DebridUsenetClient
+        ): DebridFile {
+
+        }
+
+        private fun getFreshDebridLinkFromUsenet(
+            debridFileContents: DebridTorrentFileContents,
+            debridClient: DebridTorrentClient
+        ): DebridFile {
+
+        }*/
 
     private fun mapResponseToDebridFile(
         response: GetCachedFilesResponse,
@@ -136,6 +205,8 @@ class DebridLinkService(
                     Instant.now(clock).toEpochMilli()
                 )
             )
+
+            is LinkNotSupportedByClient -> throw IllegalStateException("LinkNotSupportedByClient is not supported")
         }
     }
 
@@ -184,9 +255,13 @@ class DebridLinkService(
             is NetworkError -> debridavConfiguration.waitAfterNetworkError
             is ClientError -> debridavConfiguration.waitAfterClientError
             is CachedFile -> null
+            is LinkNotSupportedByClient -> throw IllegalStateException("LinkNotSupportedByClient is not supported")
         }?.let {
             return Instant.ofEpochMilli(debridFile.lastChecked)
                 .isBefore(Instant.now(clock).minus(it))
         } ?: false
     }
+
+    fun List<DebridClient>.getClient(debridProvider: DebridProvider): DebridClient =
+        this.first { it.getProvider() == debridProvider }
 }

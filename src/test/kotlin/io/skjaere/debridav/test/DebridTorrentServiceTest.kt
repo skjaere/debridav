@@ -7,15 +7,15 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.skjaere.debridav.configuration.DebridavConfiguration
-import io.skjaere.debridav.debrid.DebridService
+import io.skjaere.debridav.debrid.DebridTorrentService
 import io.skjaere.debridav.debrid.client.premiumize.PremiumizeClient
 import io.skjaere.debridav.debrid.client.realdebrid.RealDebridClient
 import io.skjaere.debridav.debrid.model.DebridProviderError
 import io.skjaere.debridav.debrid.model.MissingFile
 import io.skjaere.debridav.debrid.model.ProviderError
 import io.skjaere.debridav.debrid.model.SuccessfulIsCachedResult
-import io.skjaere.debridav.fs.DebridFileContents
 import io.skjaere.debridav.fs.DebridProvider
+import io.skjaere.debridav.fs.DebridTorrentFileContents
 import io.skjaere.debridav.fs.FileService
 import io.skjaere.debridav.test.integrationtest.config.TestContextInitializer
 import kotlin.test.assertEquals
@@ -39,7 +39,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 
-class DebridServiceTest {
+class DebridTorrentServiceTest {
     private val premiumizeClient = mockk<PremiumizeClient>()
     private val clock = Clock.fixed(Instant.ofEpochMilli(1730477942L), ZoneId.systemDefault())
     private val realDebridClient = mockk<RealDebridClient>()
@@ -66,7 +66,7 @@ class DebridServiceTest {
 
     private val fileService = spyk(FileService(debridavConfiguration))
 
-    private val underTest = DebridService(
+    private val underTest = DebridTorrentService(
         debridavConfiguration = debridavConfiguration,
         debridClients = debridClients,
         clock = clock
@@ -227,8 +227,8 @@ class DebridServiceTest {
         coEvery { premiumizeClient.isCached(eq(MAGNET)) } returns true
     }
 
-    private fun DebridFileContents.deepCopy() =
-        Json.decodeFromString<DebridFileContents>(
-            Json.encodeToString(DebridFileContents.serializer(), this)
+    private fun DebridTorrentFileContents.deepCopy() =
+        Json.decodeFromString<DebridTorrentFileContents>(
+            Json.encodeToString(DebridTorrentFileContents.serializer(), this)
         )
 }

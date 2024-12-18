@@ -15,10 +15,12 @@ open class UsenetDownload {
     @GeneratedValue(strategy = GenerationType.AUTO)
     open var id: Long? = null
     open var name: String? = null
-    open var debridId: String? = null
+    open var debridId: Int? = null
     open var created: Date? = null
     open var completed: Boolean? = null
+    open var percentCompleted: Double? = null
     open var debridProvider: DebridProvider? = null
+    open var size: Long? = null
 
 
     @ManyToOne

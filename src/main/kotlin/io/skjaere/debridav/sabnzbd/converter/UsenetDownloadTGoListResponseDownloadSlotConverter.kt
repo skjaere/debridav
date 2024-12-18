@@ -1,37 +1,36 @@
 package io.skjaere.debridav.sabnzbd.converter
 
-import io.skjaere.debridav.debrid.client.torbox.model.usenet.GetUsenetListItem
 import io.skjaere.debridav.sabnzbd.ListResponseDownloadSlot
+import io.skjaere.debridav.sabnzbd.UsenetDownload
 import org.springframework.core.convert.converter.Converter
 import org.springframework.stereotype.Component
-import java.time.Duration
 
 @Component
-class GetUsenetListItemToListResponseDownloadSlotConverter : Converter<GetUsenetListItem, ListResponseDownloadSlot> {
-    override fun convert(source: GetUsenetListItem): ListResponseDownloadSlot? {
-        val sizeInMb = source.size / (1 shl 20)
-        val mbLeft = 0
-        val eta = Duration.ofSeconds(source.eta)
+class CompletedUsenetDownloadTGoListResponseDownloadSlotConverter :
+    Converter<UsenetDownload, ListResponseDownloadSlot> {
+    override fun convert(source: UsenetDownload): ListResponseDownloadSlot? {
+        val sizeInMb = source.size?.div((1 shl 20))
+        val mbMissing = 0
 
         return ListResponseDownloadSlot(
-            status = source.downloadState,
-            size = bytesToHumanReadableSize(source.size),
+            status = "Completed",
+            size = bytesToHumanReadableSize(source.size!!),
             mb = "%".format(sizeInMb),
             cat = "defaultCat",
             directUnpack = "10/10",
-            mbMissing = "0",
-            percentage = source.progress.toString(),
+            mbMissing = "%".format(mbMissing),
+            percentage = "1.0",
             unpackOpts = "3",
             index = 0,
             nzoId = "nzoId",
             labels = listOf(),
-            mbLeft = mbLeft.toString(),
+            mbLeft = "0",
             script = "",
-            filename = source.name,
+            filename = source.name!!,
             password = "",
             priority = "0",
-            sizeLeft = bytesToHumanReadableSize((mbLeft * 1024 * 1024).toLong()),
-            timeLeft = "${eta.toHoursPart()}:${eta.toMinutesPart()}:${eta.toSecondsPart()}",
+            sizeLeft = "0",
+            timeLeft = "0:00:00",
             avgAge = "1d"
         )
     }

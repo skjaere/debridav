@@ -8,11 +8,12 @@ data class GetUsenetListResponse(
     val success: Boolean,
     val error: String?,
     val detail: String?,
-    val data: GetUsenetListItem
+    val data: GetUsenetListItem? = null
 )
 
 @Serializable
 data class GetUsenetListItem(
+    val id: Int,
     val hash: String,
     @SerialName("auth_id") val authId: String,
     val name: String,
@@ -26,7 +27,7 @@ data class GetUsenetListItem(
     val cached: Boolean,
     @SerialName("download_present") val downloadPresent: Boolean,
     @SerialName("download_finished") val downloadFinished: Boolean,
-    @SerialName("expires_at") val expiresAt: String,
+    @SerialName("expires_at") val expiresAt: String? = null,
     val server: Int,
     val files: List<GetUsenetResponseListItemFile>
 )
@@ -34,7 +35,7 @@ data class GetUsenetListItem(
 @Serializable
 data class GetUsenetResponseListItemFile(
     val id: String,
-    val md5: String,
+    val md5: String? = null,
     val hash: String,
     val name: String,
     val size: Long,
