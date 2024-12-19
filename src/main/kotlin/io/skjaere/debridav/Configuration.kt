@@ -72,7 +72,7 @@ class Configuration {
     }
 
     @Bean
-    fun usenetConversionService(converters: List<Converter<Any, Any>>): DefaultConversionService {
+    fun usenetConversionService(converters: List<Converter<*, *>>): DefaultConversionService {
         val conversionService = DefaultConversionService()
         converters.forEach { conversionService.addConverter(it) }
         return conversionService

@@ -14,6 +14,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.headers
+import io.ktor.serialization.JsonConvertException
+import io.skjaere.debridav.debrid.DebridUsenetService
 import io.skjaere.debridav.debrid.client.DebridUsenetClient
 import io.skjaere.debridav.debrid.client.torbox.model.usenet.CreateUsenetDownloadResponse
 import io.skjaere.debridav.debrid.client.torbox.model.usenet.GetUsenetListItem
@@ -28,6 +30,8 @@ import io.skjaere.debridav.fs.DebridUsenetFileContents
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.SerializationException
+import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.stereotype.Component
 import org.springframework.web.multipart.MultipartFile
@@ -36,9 +40,9 @@ import java.time.Instant
 @Component
 @ConditionalOnExpression("#{'\${debridav.debrid-clients}'.contains('torbox')}")
 class TorBoxUsenetClient(
-    private val httpClient: HttpClient,
-    private val torBoxConfiguration: TorBoxConfiguration
+    private val httpClient: HttpClient, private val torBoxConfiguration: TorBoxConfiguration
 ) : DebridUsenetClient {
+    private val logger = LoggerFactory.getLogger(DebridUsenetService::class.java)
 
     override suspend fun addNzb(nzbFile: MultipartFile): CreateUsenetDownloadResponse {
         val resp = httpClient.post("${torBoxConfiguration.apiUrl}/api/usenet/createusenetdownload") {
@@ -53,8 +57,7 @@ class TorBoxUsenetClient(
                             )
                             append(HttpHeaders.ContentType, "application/x-nzb")
                         })
-                    },
-                    boundary = "WebAppBoundary"
+                    }, boundary = "WebAppBoundary"
                 )
             )
             headers {
@@ -65,21 +68,26 @@ class TorBoxUsenetClient(
                 requestTimeoutMillis = 20_000
             }
         }
-        return resp.body<CreateUsenetDownloadResponse>() //TODO: handle cached nzbs
+        return try {
+            resp.body<CreateUsenetDownloadResponse>()
+        } catch (e: SerializationException) {
+            logger.error(resp.body<String>())
+            throw RuntimeException("error deserializing payload", e)
+        }
+        //TODO: handle cached nzbs
+        //TODO: handle 500
     }
 
     override suspend fun getDownloads(ids: List<Int>): List<GetUsenetListItem> = coroutineScope {
         ids.map {
             async { getDownloadInfo(it) }
-        }.awaitAll()
-            .filterNotNull() // TODO: deal with missing download
+        }.awaitAll().filterNotNull() // TODO: deal with missing download
     }
 
     override fun getProvider(): DebridProvider = DebridProvider.TORBOX
 
     suspend fun getCachedFiles(
-        debridFileContents: DebridFileContents,
-        params: Map<String, String>
+        debridFileContents: DebridFileContents, params: Map<String, String>
     ): List<CachedFile> = coroutineScope {
         when (debridFileContents) {
             is DebridTorrentFileContents -> throw IllegalStateException("This client only supports debrid-usenet-files")
@@ -88,20 +96,17 @@ class TorBoxUsenetClient(
     }
 
     suspend fun getCachedFilesFromDownload(downloadId: Int): List<CachedFile> = coroutineScope {
-        getDownloadInfo(downloadId)
-            ?.files
-            ?.map { remoteFile ->
-                async {
-                    getCachedFilesFromUsenetInfoListItem(remoteFile, downloadId)
-                }
-            }?.awaitAll() ?: emptyList()
+        getDownloadInfo(downloadId)?.files?.map { remoteFile ->
+            async {
+                getCachedFilesFromUsenetInfoListItem(remoteFile, downloadId)
+            }
+        }?.awaitAll() ?: emptyList()
     }
 
     suspend fun getCachedFilesFromUsenetInfoListItem(
-        listItemFile: GetUsenetResponseListItemFile,
-        downloadId: Int
+        listItemFile: GetUsenetResponseListItemFile, downloadId: Int
     ): CachedFile = CachedFile(
-        path = listItemFile.absolutePath,
+        path = listItemFile.name,
         size = listItemFile.size,
         mimeType = listItemFile.mimetype,
         params = mapOf("fileId" to listItemFile.id, "downloadId" to downloadId.toString()),
@@ -113,15 +118,13 @@ class TorBoxUsenetClient(
 
     override suspend fun getStreamableLink(downloadId: Int, fileId: String): String? {
         val resp = httpClient.get(
-            "${torBoxConfiguration.apiUrl}/api/usenet/requestdl" +
-                    "?token=${torBoxConfiguration.apiKey}" +
-                    "&usenet_id=$downloadId" +
-                    "&fileId=$fileId"
+            "${torBoxConfiguration.apiUrl}/api/usenet/requestdl" + "?token=${torBoxConfiguration.apiKey}" + "&usenet_id=$downloadId" + "&fileId=$fileId"
         ) {
             headers {
                 accept(ContentType.Application.Json)
                 bearerAuth(torBoxConfiguration.apiKey)
             }
+            timeout { requestTimeoutMillis = 20_000 }
         }
         return resp.body<RequestDLResponse>().data
     }
@@ -133,6 +136,11 @@ class TorBoxUsenetClient(
                 bearerAuth(torBoxConfiguration.apiKey)
             }
         }
-        return resp.body<GetUsenetListResponse>().data // TODO: handle missing downloads
+        return try {
+            resp.body<GetUsenetListResponse>().data
+        } catch (e: JsonConvertException) {
+            logger.error("error deserializing ${resp.body<String>()}", e)
+            null
+        }// TODO: handle missing downloads
     }
 }

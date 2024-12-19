@@ -8,6 +8,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import org.springframework.core.convert.ConversionService
 import org.springframework.core.io.ResourceLoader
 import org.springframework.http.ResponseEntity
@@ -22,6 +23,7 @@ class SabnzbdApiController(
     private val usenetRepository: UsenetRepository,
     private val usenetConversionService: ConversionService
 ) {
+    private val logger = LoggerFactory.getLogger(SabnzbdApiController::class.java)
 
     @RequestMapping(
         path = ["/api"],
@@ -31,33 +33,52 @@ class SabnzbdApiController(
         request: SabnzbdApiRequest,
         httpServletRequest: HttpServletRequest,
     ): ResponseEntity<String> = runBlocking {
-
+        logger.info(httpServletRequest.requestURI.toString())
         val json = when (request.mode) {
             "version" -> version()
             "get_config" -> config()
             "fullstatus" -> fullStatus()
             "addfile" -> addNzbFile(request)
             "queue" -> queue()
+            "history" -> history()
 
-            else -> "else"
+            else -> {
+                logger.error("unknown mode ${request.mode}")
+                "else"
+            }
         }
         ResponseEntity.ok(json)
     }
 
+    private fun history(): String {
+        val slots = usenetRepository
+            .findAll()
+            .filter { it.completed!! }
+            .map { usenetConversionService.convert(it, HistorySlot::class.java)!! }
+        return Json.encodeToString(
+            SabnzbdHistoryResponse(
+                SabnzbdHistory(
+                    slots
+                )
+            )
+        )
+    }
+
     private suspend fun addNzbFile(request: SabnzbdApiRequest): String {
-        debridUsenetService.addNzb(
+        val response = debridUsenetService.addNzb(
             request.name!!, request.cat!!
         )
-        return """
-                {
-                    "status": true,
-                    "nzo_ids": ["SABnzbd_nzo_kyt1f0"]
-                }
-            """.trimIndent()
+        return Json.encodeToString(
+            AddNzbResponse(
+                response.success,
+                listOf(response.data.usenetDownloadId)
+            )
+        )
     }
 
     private suspend fun queue(): String {
         val queueSlots = getDownloads()
+        logger.info("Queue Slots: $queueSlots")
         val queue = Queue(
             status = "Downloading",
             speedLimit = "0",
@@ -67,13 +88,13 @@ class SabnzbdApiController(
             noofSlotsTotal = queueSlots.size,
             limit = 0,
             start = 0,
-            timeLeft = "1h",
+            timeLeft = "0:10:0",
             speed = "1 M",
             kbPerSec = "100.0",
-            size = "${(queueSlots.sumOf { it.mb.toInt() } / 1000)} GB",
-            sizeLeft = "${(queueSlots.sumOf { it.mbLeft.toInt() } / 1000)} GB",
-            mb = queueSlots.sumOf { it.mb.toInt() }.toString(),
-            mbLeft = queueSlots.sumOf { it.mbLeft.toLong() }.toString(),
+            size = "0",//${(queueSlots.sumOf { it.mb.toInt() } / 1000)} GB",
+            sizeLeft = "0",//"${(queueSlots.sumOf { it.mbLeft.toInt() } / 1000)} GB",
+            mb = "0",//queueSlots.sumOf { it.mb.toInt() }.toString(),
+            mbLeft = "0",//queueSlots.sumOf { it.mbLeft.toLong() }.toString(),
             slots = queueSlots
         )
         return Json.encodeToString(SabnzbdFullListResponse(queue))

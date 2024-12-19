@@ -12,7 +12,6 @@ import jakarta.annotation.PostConstruct
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.apache.commons.io.FileExistsException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.io.File
@@ -63,13 +62,15 @@ class FileService(
     }
 
     private fun writeFile(file: File, inputStream: InputStream): File {
-        if (file.exists()) {
-            throw FileExistsException("${file.path} already exists")
-        }
         if (!Files.exists(file.toPath().parent)) {
             Files.createDirectories(file.toPath().parent)
         }
-        file.createNewFile()
+        if (!file.exists()) {
+            file.createNewFile()
+        } else {
+            logger.warn("${file.path} already exists. Overwriting.")
+        }
+
         inputStream.transferTo(file.outputStream())
         return file
     }

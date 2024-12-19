@@ -28,7 +28,7 @@ data class GetUsenetListItem(
     @SerialName("download_present") val downloadPresent: Boolean,
     @SerialName("download_finished") val downloadFinished: Boolean,
     @SerialName("expires_at") val expiresAt: String? = null,
-    val server: Int,
+    val server: Int? = null,
     val files: List<GetUsenetResponseListItemFile>
 )
 

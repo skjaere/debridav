@@ -14,6 +14,7 @@ open class UsenetDownload {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     open var id: Long? = null
+    open var status: UsenetDownloadStatus? = null
     open var name: String? = null
     open var debridId: Int? = null
     open var created: Date? = null
@@ -22,7 +23,10 @@ open class UsenetDownload {
     open var debridProvider: DebridProvider? = null
     open var size: Long? = null
 
-
     @ManyToOne
     open var category: Category? = null
+}
+
+enum class UsenetDownloadStatus {
+    CREATED, QUEUED, DOWNLOADING, EXTRACTING, COMPLETED, FAILED
 }

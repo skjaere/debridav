@@ -114,7 +114,7 @@ class DebridLinkService(
 
             is DebridUsenetFileContents -> debridLinkUsenetService.getFreshDebridLinkFromUsenet(
                 debridFileContents,
-                debridClients.getClient(DebridProvider.TORBOX) as DebridUsenetClient
+                debridClients.getUsenetClient(DebridProvider.TORBOX) as DebridUsenetClient
             )
         }
     }
@@ -144,7 +144,7 @@ class DebridLinkService(
             }
         }
     }
-    
+
 
     /*    private fun getFreshDebridLinkFromUsenet(
             debridFileContents: DebridUsenetFileContents,
@@ -264,4 +264,7 @@ class DebridLinkService(
 
     fun List<DebridClient>.getClient(debridProvider: DebridProvider): DebridClient =
         this.first { it.getProvider() == debridProvider }
+
+    fun List<DebridClient>.getUsenetClient(debridProvider: DebridProvider): DebridClient =
+        this.first { it is DebridUsenetClient && it.getProvider() == debridProvider }
 }

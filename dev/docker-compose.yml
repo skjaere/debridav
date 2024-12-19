@@ -30,9 +30,9 @@ services:
       - TZ=Europe/Berlin
     volumes:
       - ./sonarr-config:/config
-      - /home/william/debridav:/data:rshared
+      - ./mounted:/data:rshared
     ports:
-      - 8990:8989
+      - 8989:8989
     depends_on:
       - rclone-dev
     restart: unless-stopped

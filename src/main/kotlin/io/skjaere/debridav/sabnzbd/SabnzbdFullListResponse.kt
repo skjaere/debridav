@@ -3,6 +3,7 @@ package io.skjaere.debridav.sabnzbd
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+@Serializable
 data class SabnzbdFullListResponse(
     val queue: Queue,
 )
